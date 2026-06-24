@@ -1,115 +1,155 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malolan Text Explorer</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Malolan • text explorer</title>
+  <!-- Fonts & icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    /* Premium custom scroll & subtle glass effects */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #c7d2fe transparent;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #a5b4fc;
+      border-radius: 8px;
+    }
+    .mark-search {
+      background: #fde047;
+      color: #1e293b;
+      border-radius: 4px;
+      padding: 0 2px;
+      font-weight: 600;
+      box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4);
+    }
+    .row-striped tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .glass-panel {
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.8);
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-12">
+<body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16" style="font-family: 'Inter', system-ui, sans-serif;">
 
-    <nav class="bg-white shadow-sm border-b border-gray-200 mb-8">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="index.html" class="text-xl font-bold text-indigo-600 hover:text-indigo-800 transition">📊 TSV Explorer</a>
-            <div id="nav-file-name" class="text-sm text-gray-500 font-medium hidden"></div>
+  <!-- Premium navigation with subtle gradient & shadow -->
+  <nav class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <a href="index.html" class="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent hover:scale-105 transition-transform">
+        <span class="text-3xl">📜</span> Malolan
+      </a>
+      <div id="nav-file-name" class="hidden text-sm font-medium text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full"></div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+    <!-- Homepage view -->
+    <div id="homepage-view" class="hidden">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight">Explore your <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">sacred texts</span></h1>
+        <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Select a dataset to view an interactive, searchable table with column controls.</p>
+      </div>
+      <ul id="file-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- dynamic file cards -->
+      </ul>
+    </div>
+
+    <!-- Table view -->
+    <div id="table-view" class="hidden">
+      <!-- Toolbar: back, search, column visibility -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-full shadow-sm border border-indigo-100 hover:shadow-md transition">
+          <span>←</span> Datasets
+        </a>
+
+        <!-- Search with premium style -->
+        <div class="relative flex-1 min-w-[280px] max-w-lg">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <input id="search-input" type="text" autocomplete="off" placeholder="Search rows… (press / to focus)"
+            class="w-full pl-11 pr-28 py-3 text-sm bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all" />
+          <div id="search-controls" class="hidden absolute inset-y-1 right-1 flex items-center gap-1 bg-white/90 rounded-xl px-1">
+            <span id="search-count" class="text-xs font-mono text-slate-500 px-2 select-none whitespace-nowrap"></span>
+            <button id="search-prev" type="button" title="Previous (Shift+Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="search-next" type="button" title="Next (Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+            </button>
+            <button id="search-clear" type="button" title="Clear (Esc)" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-600 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
         </div>
-    </nav>
 
-    <main class="max-w-6xl mx-auto px-4">
-        <div id="homepage-view" class="hidden">
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Available Texts</h1>
-            <p class="text-gray-600 mb-6">Select a file below to view its contents as an interactive table.</p>
-            <ul id="file-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </ul>
-        </div>
-
-        <div id="table-view" class="hidden">
-            <div class="mb-4 flex items-center justify-between gap-4 flex-wrap">
-                <a href="index.html" class="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 shrink-0">
-                    ← Back to Datasets
-                </a>
-
-                <!-- Search box -->
-                <div class="relative flex-1 min-w-[220px] max-w-md order-3 md:order-none">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <input id="search-input" type="text" autocomplete="off" placeholder="Search rows… (press / to focus)"
-                        class="w-full pl-9 pr-28 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
-                    <div id="search-controls" class="hidden absolute inset-y-0 right-1 flex items-center gap-0.5">
-                        <span id="search-count" class="text-xs text-gray-400 px-1.5 select-none whitespace-nowrap"></span>
-                        <button id="search-prev" type="button" title="Previous match (Shift+Enter)"
-                            class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <button id="search-next" type="button" title="Next match (Enter)"
-                            class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <button id="search-clear" type="button" title="Clear search (Esc)"
-                            class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-red-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Column multi-select dropdown (top right, stays put — only the table body scrolls) -->
-                <div id="column-dropdown" class="relative shrink-0">
-                    <button id="column-dropdown-btn" type="button"
-                        class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-xs hover:bg-gray-50 hover:border-indigo-300 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-5.414 5.414a1 1 0 00-.293.707V17l-4-2v-3.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd" />
-                        </svg>
-                        <span id="column-count-label">Columns</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-
-                    <div id="column-dropdown-panel-wrapper"
-                        class="hidden absolute right-0 mt-2 w-max min-w-[16rem] max-w-[36rem] bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-3">
-                        <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Show columns</span>
-                            <div class="flex items-center gap-2">
-                                <button id="column-select-all" type="button" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">All</button>
-                                <span class="text-gray-300">|</span>
-                                <button id="column-select-none" type="button" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">None</button>
-                            </div>
-                        </div>
-                        <!-- Grid layout (not a scroll area) so many columns wrap instead of overflowing -->
-                        <div id="column-dropdown-panel" class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));"></div>
-                    </div>
-                </div>
+        <!-- Column visibility dropdown -->
+        <div id="column-dropdown" class="relative shrink-0">
+          <button id="column-dropdown-btn" type="button"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-5.414 5.414a1 1 0 00-.293.707V17l-4-2v-3.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd" />
+            </svg>
+            <span id="column-count-label">Columns</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+          </button>
+          <div id="column-dropdown-panel-wrapper"
+            class="hidden absolute right-0 mt-3 w-72 sm:w-96 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl z-20 p-4">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Toggle columns</span>
+              <div class="flex gap-2 text-xs font-semibold">
+                <button id="column-select-all" class="text-indigo-600 hover:text-indigo-800">All</button>
+                <span class="text-slate-300">|</span>
+                <button id="column-select-none" class="text-indigo-600 hover:text-indigo-800">None</button>
+              </div>
             </div>
-
-            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-                <!-- Fixed-height scroll container: header row stays put, only rows scroll -->
-                <div id="table-scroll-container" class="overflow-auto" style="max-height: 70vh;">
-                    <table id="data-table" class="w-full text-left border-collapse">
-                        </table>
-                </div>
-            </div>
+            <div id="column-dropdown-panel" class="grid grid-cols-2 gap-x-3 gap-y-1 max-h-60 overflow-y-auto custom-scroll"></div>
+          </div>
         </div>
+      </div>
 
-        <div id="status-message" class="text-center py-12 hidden">
-            <p class="text-lg font-medium text-gray-600" id="status-text">Loading...</p>
+      <!-- Table card with glass effect -->
+      <div class="bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl overflow-hidden border border-slate-200/80">
+        <div id="table-scroll-container" class="overflow-auto custom-scroll" style="max-height: 70vh;">
+          <table id="data-table" class="w-full text-left border-collapse row-striped">
+            <!-- dynamic content -->
+          </table>
         </div>
-    </main>
+      </div>
+      <div class="mt-3 text-xs text-right text-slate-400 pr-2" id="row-count-indicator"></div>
+    </div>
 
-    <script>
-        // 1. LIST YOUR TSV FILES HERE
-        // Because client-side JavaScript cannot read a local folder directory directly,
-        // you just need to list your filenames in this array whenever you add new ones.
-        const tsvFiles = [
+    <!-- Status message -->
+    <div id="status-message" class="text-center py-20 hidden">
+      <div class="inline-flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-lg">
+        <div class="animate-spin h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full"></div>
+        <p class="text-lg font-medium text-slate-600" id="status-text">Loading sacred texts...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      // ----- CONFIGURATION -----
+      const tsvFiles = [
             "agama_pramanya.tsv",
             "aniruddha_samhita.tsv",
             "lakshmi-tantram.tsv",
@@ -120,379 +160,324 @@
             "sri-vishvaksena-samhita.tsv",
             "vishnu-samhita.tsv"
         ];
+      const dataFolder = "data/";
 
-        const dataFolder = "data/"; // Path to your TSV folder
+      // DOM elements
+      const homepageView = document.getElementById('homepage-view');
+      const tableView = document.getElementById('table-view');
+      const fileList = document.getElementById('file-list');
+      const dataTable = document.getElementById('data-table');
+      const statusMessage = document.getElementById('status-message');
+      const statusText = document.getElementById('status-text');
+      const navFileName = document.getElementById('nav-file-name');
+      const columnDropdown = document.getElementById('column-dropdown');
+      const columnDropdownBtn = document.getElementById('column-dropdown-btn');
+      const columnDropdownPanelWrapper = document.getElementById('column-dropdown-panel-wrapper');
+      const columnDropdownPanel = document.getElementById('column-dropdown-panel');
+      const columnCountLabel = document.getElementById('column-count-label');
+      const columnSelectAllBtn = document.getElementById('column-select-all');
+      const columnSelectNoneBtn = document.getElementById('column-select-none');
+      const searchInput = document.getElementById('search-input');
+      const searchControls = document.getElementById('search-controls');
+      const searchCount = document.getElementById('search-count');
+      const searchPrevBtn = document.getElementById('search-prev');
+      const searchNextBtn = document.getElementById('search-next');
+      const searchClearBtn = document.getElementById('search-clear');
+      const rowCountIndicator = document.getElementById('row-count-indicator');
 
-        // DOM Elements
-        const homepageView = document.getElementById('homepage-view');
-        const tableView = document.getElementById('table-view');
-        const fileList = document.getElementById('file-list');
-        const dataTable = document.getElementById('data-table');
-        const statusMessage = document.getElementById('status-message');
-        const statusText = document.getElementById('status-text');
-        const navFileName = document.getElementById('nav-file-name');
+      // State
+      let currentHeaders = [];
+      let currentRows = [];
+      let visibleColumns = [];
+      let searchMatches = [];
+      let searchPointer = -1;
+      let currentSearchQuery = '';
+      let searchDebounceTimer = null;
 
-        const columnDropdown = document.getElementById('column-dropdown');
-        const columnDropdownBtn = document.getElementById('column-dropdown-btn');
-        const columnDropdownPanelWrapper = document.getElementById('column-dropdown-panel-wrapper');
-        const columnDropdownPanel = document.getElementById('column-dropdown-panel');
-        const columnCountLabel = document.getElementById('column-count-label');
-        const columnSelectAllBtn = document.getElementById('column-select-all');
-        const columnSelectNoneBtn = document.getElementById('column-select-none');
+      // ----- Helpers -----
+      const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      };
 
-        // Search elements
-        const searchInput = document.getElementById('search-input');
-        const searchControls = document.getElementById('search-controls');
-        const searchCount = document.getElementById('search-count');
-        const searchPrevBtn = document.getElementById('search-prev');
-        const searchNextBtn = document.getElementById('search-next');
-        const searchClearBtn = document.getElementById('search-clear');
+      function showStatus(msg, isError = false) {
+        statusMessage.classList.remove('hidden');
+        statusText.textContent = msg;
+        statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
+      }
 
-        // Table state (kept so column toggling can re-render without re-fetching/re-parsing)
-        let currentHeaders = [];
-        let currentRows = [];
-        let visibleColumns = [];
+      function hideStatus() {
+        statusMessage.classList.add('hidden');
+      }
 
-        // Search state
-        let searchMatches = [];       // row indices (into currentRows) that match the query
-        let searchPointer = -1;       // index into searchMatches of the "current" match
-        let currentSearchQuery = '';  // the active, trimmed query string
-        let searchDebounceTimer = null;
+      // ----- Routing -----
+      window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedFile = urlParams.get('file');
+        if (selectedFile && tsvFiles.includes(selectedFile)) {
+          renderTableMode(selectedFile);
+        } else {
+          renderHomeMode();
+        }
+      });
 
-        // Route handler based on URL parameters
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const selectedFile = urlParams.get('file');
-
-            if (selectedFile && tsvFiles.includes(selectedFile)) {
-                renderTableMode(selectedFile);
-            } else {
-                renderHomeMode();
-            }
+      function renderHomeMode() {
+        homepageView.classList.remove('hidden');
+        tableView.classList.add('hidden');
+        fileList.innerHTML = '';
+        tsvFiles.forEach(file => {
+          const li = document.createElement('li');
+          li.className = "group bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300";
+          li.innerHTML = `
+            <a href="?file=${encodeURIComponent(file)}" class="block">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">📄</span>
+                  <span class="font-semibold text-slate-800 group-hover:text-indigo-700 transition">${escapeHtml(file)}</span>
+                </div>
+                <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full group-hover:bg-indigo-100 transition">Explore →</span>
+              </div>
+            </a>
+          `;
+          fileList.appendChild(li);
         });
+      }
 
-        // Mode 1: Render Homepage File List
-        function renderHomeMode() {
-            homepageView.classList.remove('hidden');
-            fileList.innerHTML = '';
-
-            tsvFiles.forEach(file => {
-                const li = document.createElement('li');
-                li.className = "bg-white p-5 rounded-lg border border-gray-200 shadow-xs hover:shadow-md hover:border-indigo-300 transition duration-200";
-                li.innerHTML = `
-                    <a href="?file=${encodeURIComponent(file)}" class="block">
-                        <div class="flex items-center justify-between">
-                            <span class="font-medium text-gray-900 break-all">${file}</span>
-                            <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">View Table →</span>
-                        </div>
-                    </a>
-                `;
-                fileList.appendChild(li);
+      function renderTableMode(fileName) {
+        homepageView.classList.add('hidden');
+        tableView.classList.remove('hidden');
+        navFileName.textContent = fileName;
+        navFileName.classList.remove('hidden');
+        showStatus("Loading and parsing dataset...");
+        const filePath = dataFolder + fileName;
+        fetch(filePath)
+          .then(response => {
+            if (!response.ok) throw new Error("File not found");
+            return response.text();
+          })
+          .then(tsvText => {
+            Papa.parse(tsvText, {
+              delimiter: "\t",
+              skipEmptyLines: true,
+              complete: function(results) {
+                loadTableData(results.data);
+                hideStatus();
+              },
+              error: () => showStatus("Parsing error.", true)
             });
+          })
+          .catch(() => showStatus(`Failed to load "${fileName}".`, true));
+      }
+
+      function loadTableData(data) {
+        if (!data.length) {
+          currentHeaders = [];
+          currentRows = [];
+          dataTable.innerHTML = '<tr><td class="p-10 text-center text-slate-400">Empty dataset</td></tr>';
+          columnDropdown.classList.add('hidden');
+          return;
         }
+        currentHeaders = data[0];
+        currentRows = data.slice(1);
+        visibleColumns = currentHeaders.map(() => true);
+        searchMatches = [];
+        searchPointer = -1;
+        currentSearchQuery = '';
+        searchInput.value = '';
+        searchControls.classList.add('hidden');
+        columnDropdown.classList.remove('hidden');
+        buildColumnDropdown();
+        renderTable();
+        updateRowCount();
+      }
 
-        // Mode 2: Fetch and Parse TSV into HTML Table
-        function renderTableMode(fileName) {
-            tableView.classList.remove('hidden');
-            navFileName.textContent = fileName;
-            navFileName.classList.remove('hidden');
-            showStatus("Loading and parsing table data...");
-
-            const filePath = dataFolder + fileName;
-
-            // Fetch the TSV file text
-            fetch(filePath)
-                .then(response => {
-                    if (!response.ok) throw new Error("File not found or inaccessible");
-                    return response.text();
-                })
-                .then(tsvText => {
-                    // Use PapaParse to safely convert TSV string to arrays
-                    Papa.parse(tsvText, {
-                        delimiter: "\t", // Enforce TSV tab delimiter
-                        skipEmptyLines: true,
-                        complete: function(results) {
-                            loadTableData(results.data);
-                            hideStatus();
-                        },
-                        error: function(err) {
-                            showStatus("Error parsing TSV file structure.", true);
-                        }
-                    });
-                })
-                .catch(err => {
-                    showStatus(`Failed to load "${fileName}". Ensure it exists in the /data folder.`, true);
-                });
-        }
-
-        // Store parsed data, set up the column picker, and do the first render
-        function loadTableData(data) {
-            if (data.length === 0) {
-                currentHeaders = [];
-                currentRows = [];
-                dataTable.innerHTML = '<tr><td class="p-4 text-gray-500">The selected file is empty.</td></tr>';
-                columnDropdown.classList.add('hidden');
-                return;
-            }
-
-            currentHeaders = data[0];
-            currentRows = data.slice(1);
-            visibleColumns = currentHeaders.map(() => true); // all columns shown by default
-
-            // Reset any previous search state for the newly loaded file
-            searchMatches = [];
-            searchPointer = -1;
-            currentSearchQuery = '';
-            searchInput.value = '';
-            searchControls.classList.add('hidden');
-
-            columnDropdown.classList.remove('hidden');
-            buildColumnDropdown();
-            renderTable();
-        }
-
-        // Build the checkbox list inside the dropdown panel
-        function buildColumnDropdown() {
-            columnDropdownPanel.innerHTML = '';
-
-            currentHeaders.forEach((header, idx) => {
-                const label = document.createElement('label');
-                label.className = "flex items-center gap-2 px-2 py-1.5 rounded hover:bg-indigo-50 cursor-pointer";
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = true;
-                checkbox.dataset.colIdx = idx;
-                checkbox.className = "rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0";
-                checkbox.addEventListener('change', () => {
-                    visibleColumns[idx] = checkbox.checked;
-                    applyColumnVisibility(idx);
-                    updateColumnCountLabel();
-                });
-
-                const span = document.createElement('span');
-                span.className = "text-sm text-gray-700 truncate";
-                span.textContent = header || `Column ${idx + 1}`;
-
-                label.appendChild(checkbox);
-                label.appendChild(span);
-                columnDropdownPanel.appendChild(label);
-            });
-
+      function buildColumnDropdown() {
+        columnDropdownPanel.innerHTML = '';
+        currentHeaders.forEach((header, idx) => {
+          const label = document.createElement('label');
+          label.className = "flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50 cursor-pointer transition text-sm";
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.dataset.colIdx = idx;
+          checkbox.className = "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500";
+          checkbox.addEventListener('change', (e) => {
+            visibleColumns[idx] = e.target.checked;
+            applyColumnVisibility(idx);
             updateColumnCountLabel();
+          });
+          const span = document.createElement('span');
+          span.className = "text-slate-700 truncate";
+          span.textContent = header || `Column ${idx+1}`;
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          columnDropdownPanel.appendChild(label);
+        });
+        updateColumnCountLabel();
+      }
+
+      function applyColumnVisibility(idx) {
+        const isVisible = visibleColumns[idx];
+        dataTable.querySelectorAll(`[data-col-idx="${idx}"]`).forEach(el => {
+          el.classList.toggle('hidden', !isVisible);
+        });
+      }
+
+      function updateColumnCountLabel() {
+        const shown = visibleColumns.filter(Boolean).length;
+        const total = visibleColumns.length;
+        columnCountLabel.textContent = shown === total ? `Columns (${total})` : `${shown}/${total}`;
+      }
+
+      function updateRowCount() {
+        if (rowCountIndicator) {
+          rowCountIndicator.textContent = `${currentRows.length} row${currentRows.length !== 1 ? 's' : ''}`;
         }
+      }
 
-        // Toggle just one column's cells (header + every row) without rebuilding the table
-        function applyColumnVisibility(idx) {
-            const isVisible = visibleColumns[idx];
-            dataTable.querySelectorAll(`[data-col-idx="${idx}"]`).forEach(el => {
-                el.classList.toggle('hidden', !isVisible);
-            });
-        }
+      function renderTable(query = '') {
+        let html = `<thead class="bg-slate-50/90 backdrop-blur-sm border-b border-slate-200"><tr>`;
+        currentHeaders.forEach((header, idx) => {
+          const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
+          html += `<th data-col-idx="${idx}" class="sticky top-0 bg-slate-50/95 backdrop-blur-sm px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-600 z-10 ${hiddenClass}">${escapeHtml(header)}</th>`;
+        });
+        html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
 
-        function updateColumnCountLabel() {
-            const shown = visibleColumns.filter(Boolean).length;
-            const total = visibleColumns.length;
-            columnCountLabel.textContent = shown === total ? `Columns (${total})` : `Columns (${shown}/${total})`;
-        }
+        currentRows.forEach((row, rowIdx) => {
+          const isMatch = query && searchMatches.includes(rowIdx);
+          const isCurrent = isMatch && searchMatches[searchPointer] === rowIdx;
+          let rowClass = 'transition-colors duration-150';
+          if (isCurrent) rowClass = 'bg-indigo-50 ring-2 ring-inset ring-indigo-400';
+          else if (isMatch) rowClass = 'bg-amber-50/70';
 
-        // Construct HTML Table from parsed JSON arrays, honoring current column visibility
-        // and the active search (matched rows get a highlight + matched text gets <mark>'d).
-        function renderTable(query = '') {
-            let tableHTML = `<thead class="bg-gray-100 border-b border-gray-200"><tr>`;
-            currentHeaders.forEach((header, idx) => {
-                const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
-                // sticky + top-0 pins the header row inside the scrollable table container
-                tableHTML += `<th data-col-idx="${idx}" class="sticky top-0 bg-gray-100 px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-700 z-10 ${hiddenClass}">${escapeHtml(header)}</th>`;
-            });
-            tableHTML += `</tr></thead><tbody class="divide-y divide-gray-200">`;
+          html += `<tr data-row-idx="${rowIdx}" class="${rowClass}">`;
+          row.forEach((cell, idx) => {
+            const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
+            const cellContent = isMatch ? highlightCell(cell, query) : escapeHtml(cell);
+            html += `<td data-col-idx="${idx}" class="px-6 py-3 text-sm text-slate-600 whitespace-nowrap ${hiddenClass}">${cellContent}</td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</tbody>`;
+        dataTable.innerHTML = html;
+      }
 
-            currentRows.forEach((row, rowIdx) => {
-                const isMatch = query && searchMatches.includes(rowIdx);
-                const isCurrent = isMatch && searchMatches[searchPointer] === rowIdx;
+      function highlightCell(rawCell, query) {
+        const cellStr = rawCell || '';
+        if (!query) return escapeHtml(cellStr);
+        const lowerCell = cellStr.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const idx = lowerCell.indexOf(lowerQuery);
+        if (idx === -1) return escapeHtml(cellStr);
+        const before = cellStr.slice(0, idx);
+        const match = cellStr.slice(idx, idx + query.length);
+        const after = cellStr.slice(idx + query.length);
+        return escapeHtml(before) + `<mark class="mark-search">${escapeHtml(match)}</mark>` + escapeHtml(after);
+      }
 
-                let rowClass = 'hover:bg-gray-50 transition';
-                if (isCurrent) {
-                    rowClass = 'bg-indigo-50 ring-2 ring-inset ring-indigo-400 transition';
-                } else if (isMatch) {
-                    rowClass = 'bg-yellow-50 hover:bg-yellow-100 transition';
-                }
-
-                tableHTML += `<tr data-row-idx="${rowIdx}" class="${rowClass}">`;
-                row.forEach((cell, idx) => {
-                    const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
-                    const cellHtml = isMatch ? highlightCell(cell, query) : escapeHtml(cell);
-                    tableHTML += `<td data-col-idx="${idx}" class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap ${hiddenClass}">${cellHtml}</td>`;
-                });
-                tableHTML += `</tr>`;
-            });
-            tableHTML += `</tbody>`;
-
-            dataTable.innerHTML = tableHTML;
-        }
-
-        // Wraps the first occurrence of `query` inside a cell's text in a <mark>, while
-        // still escaping every other fragment individually (so no raw HTML ever sneaks in).
-        function highlightCell(rawCell, query) {
-            const cellStr = rawCell || '';
-            if (!query) return escapeHtml(cellStr);
-
-            const lowerCell = cellStr.toLowerCase();
-            const lowerQuery = query.toLowerCase();
-            const matchIdx = lowerCell.indexOf(lowerQuery);
-            if (matchIdx === -1) return escapeHtml(cellStr);
-
-            const pre = cellStr.slice(0, matchIdx);
-            const match = cellStr.slice(matchIdx, matchIdx + query.length);
-            const post = cellStr.slice(matchIdx + query.length);
-
-            return escapeHtml(pre) +
-                '<mark class="bg-yellow-300 text-gray-900 rounded-sm px-0.5">' + escapeHtml(match) + '</mark>' +
-                escapeHtml(post);
-        }
-
-        // ---- Search logic ----
-
-        // Re-scans currentRows for `query`, re-renders the table with highlights,
-        // and (if there's a match) auto-scrolls to the first one.
-        function performSearch(query) {
-            currentSearchQuery = query.trim();
-            searchMatches = [];
-            searchPointer = -1;
-
-            const q = currentSearchQuery.toLowerCase();
-            if (q) {
-                currentRows.forEach((row, idx) => {
-                    const isMatch = row.some(cell => (cell || '').toLowerCase().includes(q));
-                    if (isMatch) searchMatches.push(idx);
-                });
-                if (searchMatches.length > 0) searchPointer = 0;
+      function performSearch(query) {
+        currentSearchQuery = query.trim();
+        searchMatches = [];
+        searchPointer = -1;
+        const q = currentSearchQuery.toLowerCase();
+        if (q) {
+          currentRows.forEach((row, idx) => {
+            if (row.some(cell => (cell || '').toLowerCase().includes(q))) {
+              searchMatches.push(idx);
             }
-
-            renderTable(currentSearchQuery);
-            updateSearchUI();
-
-            if (searchPointer !== -1) {
-                scrollToMatch();
-            }
+          });
+          if (searchMatches.length) searchPointer = 0;
         }
+        renderTable(currentSearchQuery);
+        updateSearchUI();
+        if (searchPointer !== -1) scrollToMatch();
+      }
 
-        // Moves the "current" match pointer forward/back (wrapping), re-renders, and scrolls.
-        function goToMatch(offset) {
-            if (searchMatches.length === 0) return;
-            searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
-            renderTable(currentSearchQuery);
-            updateSearchUI();
-            scrollToMatch();
+      function goToMatch(offset) {
+        if (!searchMatches.length) return;
+        searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
+        renderTable(currentSearchQuery);
+        updateSearchUI();
+        scrollToMatch();
+      }
+
+      function scrollToMatch() {
+        if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
+        const rowEl = dataTable.querySelector(`tr[data-row-idx="${searchMatches[searchPointer]}"]`);
+        if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      function updateSearchUI() {
+        if (!currentSearchQuery) {
+          searchControls.classList.add('hidden');
+          return;
         }
-
-        function scrollToMatch() {
-            if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
-            const rowIdx = searchMatches[searchPointer];
-            const rowEl = dataTable.querySelector(`tr[data-row-idx="${rowIdx}"]`);
-            if (rowEl) {
-                rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+        searchControls.classList.remove('hidden');
+        if (!searchMatches.length) {
+          searchCount.textContent = '0/0';
+          searchCount.className = "text-xs font-mono text-rose-500 px-2";
+        } else {
+          searchCount.textContent = `${searchPointer+1}/${searchMatches.length}`;
+          searchCount.className = "text-xs font-mono text-slate-600 px-2";
         }
+      }
 
-        function updateSearchUI() {
-            if (!currentSearchQuery) {
-                searchControls.classList.add('hidden');
-                return;
-            }
-            searchControls.classList.remove('hidden');
-            if (searchMatches.length === 0) {
-                searchCount.textContent = 'No results';
-                searchCount.className = "text-xs text-red-500 px-1.5 select-none whitespace-nowrap";
-            } else {
-                searchCount.textContent = `${searchPointer + 1}/${searchMatches.length}`;
-                searchCount.className = "text-xs text-gray-400 px-1.5 select-none whitespace-nowrap";
-            }
+      function clearSearch() {
+        searchInput.value = '';
+        performSearch('');
+      }
+
+      // Event listeners
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 150);
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (searchMatches.length) goToMatch(e.shiftKey ? -1 : 1);
+        } else if (e.key === 'Escape') {
+          clearSearch();
+          searchInput.blur();
         }
+      });
+      searchPrevBtn.addEventListener('click', () => goToMatch(-1));
+      searchNextBtn.addEventListener('click', () => goToMatch(1));
+      searchClearBtn.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
 
-        function clearSearch() {
-            searchInput.value = '';
-            performSearch('');
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !tableView.classList.contains('hidden')) {
+          const tag = document.activeElement?.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+          e.preventDefault();
+          searchInput.focus();
         }
+      });
 
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchDebounceTimer);
-            const value = e.target.value;
-            searchDebounceTimer = setTimeout(() => performSearch(value), 150);
-        });
-
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (searchMatches.length === 0) return;
-                goToMatch(e.shiftKey ? -1 : 1);
-            } else if (e.key === 'Escape') {
-                clearSearch();
-                searchInput.blur();
-            }
-        });
-
-        searchPrevBtn.addEventListener('click', () => goToMatch(-1));
-        searchNextBtn.addEventListener('click', () => goToMatch(1));
-        searchClearBtn.addEventListener('click', () => {
-            clearSearch();
-            searchInput.focus();
-        });
-
-        // "/" focuses the search box from anywhere on the table page, like many table/search UIs
-        document.addEventListener('keydown', (e) => {
-            if (e.key !== '/' || tableView.classList.contains('hidden')) return;
-            const tag = document.activeElement.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-            e.preventDefault();
-            searchInput.focus();
-        });
-
-        // ---- Column dropdown open/close behavior ----
-        columnDropdownBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            columnDropdownPanelWrapper.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!columnDropdown.contains(e.target)) {
-                columnDropdownPanelWrapper.classList.add('hidden');
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') columnDropdownPanelWrapper.classList.add('hidden');
-        });
-
-        columnSelectAllBtn.addEventListener('click', () => {
-            visibleColumns = visibleColumns.map(() => true);
-            columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-            currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
-            updateColumnCountLabel();
-        });
-
-        columnSelectNoneBtn.addEventListener('click', () => {
-            visibleColumns = visibleColumns.map(() => false);
-            columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
-            updateColumnCountLabel();
-        });
-
-        // Helper: Prevent XSS injection if files contain raw HTML strings
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
-        function showStatus(msg, isError = false) {
-            statusMessage.classList.remove('hidden');
-            statusText.textContent = msg;
-            statusText.className = isError ? "text-lg font-medium text-red-600" : "text-lg font-medium text-gray-600";
-        }
-
-        function hideStatus() {
-            statusMessage.classList.add('hidden');
-        }
-    </script>
+      columnDropdownBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        columnDropdownPanelWrapper.classList.toggle('hidden');
+      });
+      document.addEventListener('click', (e) => {
+        if (!columnDropdown.contains(e.target)) columnDropdownPanelWrapper.classList.add('hidden');
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') columnDropdownPanelWrapper.classList.add('hidden');
+      });
+      columnSelectAllBtn.addEventListener('click', () => {
+        visibleColumns = visibleColumns.map(() => true);
+        columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
+        updateColumnCountLabel();
+      });
+      columnSelectNoneBtn.addEventListener('click', () => {
+        visibleColumns = visibleColumns.map(() => false);
+        columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
+        updateColumnCountLabel();
+      });
+    })();
+  </script>
 </body>
 </html>
+``` 
