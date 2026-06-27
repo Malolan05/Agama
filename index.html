@@ -1,483 +1,1049 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Malolan • text explorer</title>
-  <!-- Fonts & icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
-    /* Premium custom scroll & subtle glass effects */
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: #c7d2fe transparent;
+    :root {
+      --gold-50:  #fffbeb;
+      --gold-100: #fef3c7;
+      --gold-200: #fde68a;
+      --gold-300: #fcd34d;
+      --gold-400: #fbbf24;
+      --gold-500: #f59e0b;
+      --gold-600: #d97706;
+      --gold-700: #b45309;
+      --gold-800: #92400e;
+      --gold-900: #78350f;
+      --parchment:      #fdf6e3;
+      --parchment-dark: #f5e6c8;
+      --ink:       #1a0800;
+      --ink-muted: #4a2f00;
+      --ink-faint: #7c5c2e;
+      --divider:   rgba(180,83,9,0.18);
+      --sidebar-width: 240px;
     }
-    .custom-scroll::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--parchment);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 10%, rgba(251,191,36,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 90%, rgba(180,83,9,0.06) 0%, transparent 50%);
     }
-    .custom-scroll::-webkit-scrollbar-track {
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gold-400); border-radius: 4px; }
+    * { scrollbar-width: thin; scrollbar-color: var(--gold-400) transparent; }
+
+    /* ---- NAV ---- */
+    nav {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(253,246,227,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--divider);
+      padding: 0 1.5rem;
+    }
+    .nav-inner {
+      max-width: 100%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px; gap: 1rem;
+    }
+    .nav-brand {
+      font-family: 'Noto Serif', serif;
+      font-size: 1.35rem; font-weight: 600;
+      color: var(--gold-800); text-decoration: none;
+      display: flex; align-items: center; gap: 0.5rem;
+      letter-spacing: 0.01em; transition: color 0.15s; flex-shrink: 0;
+    }
+    .nav-brand:hover { color: var(--gold-600); }
+    #nav-file-name {
+      display: none;
+      background: var(--gold-100); border: 1px solid var(--gold-300);
+      color: var(--gold-800); font-size: 0.75rem; font-weight: 500;
+      padding: 0.25rem 0.8rem; border-radius: 99px;
+      max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* nav search (shown in reader mode) */
+    .nav-search-wrap {
+      display: none; position: relative; flex: 1; max-width: 380px;
+    }
+    .nav-search-wrap.active { display: flex; align-items: center; }
+    #global-search {
+      width: 100%; padding: 0.45rem 4.5rem 0.45rem 2.1rem;
+      background: white; border: 1px solid var(--gold-300);
+      border-radius: 99px; font-size: 0.84rem; color: var(--ink);
+      font-family: 'Inter', sans-serif; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #global-search:focus { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
+    #global-search::placeholder { color: var(--ink-faint); }
+    .nav-search-icon {
+      position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+      color: var(--gold-600); font-size: 0.85rem; pointer-events: none;
+    }
+    #global-search-count {
+      position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+      font-size: 0.68rem; color: var(--ink-faint); white-space: nowrap;
+    }
+
+    /* ---- HOMEPAGE ---- */
+    #homepage-view { display: none; }
+    .home-hero {
+      max-width: 700px; margin: 0 auto;
+      padding: 4rem 1.5rem 2rem; text-align: center;
+    }
+    .home-hero h1 {
+      font-family: 'Noto Serif', serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 600; color: var(--gold-900); line-height: 1.25;
+    }
+    .home-hero h1 em { font-style: italic; color: var(--gold-700); }
+    .home-hero p { margin-top: 0.75rem; color: var(--ink-muted); font-size: 1rem; line-height: 1.65; }
+    .gold-rule {
+      width: 56px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+      margin: 1.25rem auto;
+    }
+    .file-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
+      gap: 1rem; max-width: 900px; margin: 0 auto 4rem; padding: 0 1.5rem; list-style: none;
+    }
+    .file-card {
+      background: white; border: 1px solid var(--gold-200); border-radius: 12px; padding: 1.4rem;
+      text-decoration: none; color: var(--ink);
+      display: flex; align-items: flex-start; gap: 1rem;
+      transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .file-card:hover { border-color: var(--gold-400); box-shadow: 0 4px 20px rgba(180,83,9,0.12); transform: translateY(-2px); }
+    .file-icon {
+      font-size: 1.4rem; flex-shrink: 0; width: 44px; height: 44px;
+      background: var(--gold-50); border: 1px solid var(--gold-200);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .file-info { min-width: 0; flex: 1; }
+    .file-name {
+      font-family: 'Noto Serif', serif; font-size: 0.95rem; font-weight: 600;
+      color: var(--gold-900); margin-bottom: 0.15rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-cta { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold-600); }
+
+    /* ---- READER/TABLE VIEW SHELL ---- */
+    #reader-view { display: none; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.8rem; font-weight: 500; color: var(--gold-700);
+      text-decoration: none; border: 1px solid var(--gold-300);
+      border-radius: 99px; padding: 0.35rem 0.8rem; background: white;
+      transition: all 0.15s; margin: 0.75rem 0 0 1.25rem;
+    }
+    .back-btn:hover { border-color: var(--gold-500); background: var(--gold-50); }
+
+    /* View-mode toggle bar */
+    .view-mode-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1.25rem 0;
+    }
+    .view-btn {
+      padding: 0.35rem 0.9rem; border-radius: 99px;
+      font-size: 0.78rem; font-weight: 500; font-family: 'Inter', sans-serif;
+      border: 1px solid var(--gold-300); background: transparent; color: var(--ink-muted);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .view-btn.active { background: var(--gold-600); color: white; border-color: var(--gold-600); }
+    .view-btn:not(.active):hover { background: var(--gold-50); color: var(--gold-800); }
+
+    /* Layout: sidebar + content */
+    .reader-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      min-height: calc(100vh - 120px);
+    }
+    /* In table mode, collapse sidebar */
+    #reader-view.table-mode .reader-layout { grid-template-columns: 1fr; }
+    #reader-view.table-mode .sidebar { display: none; }
+
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid var(--divider);
+      background: rgba(255,255,255,0.45);
+      padding: 1.25rem 0;
+      position: sticky; top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-faint); font-weight: 700; padding: 0 1rem 0.6rem;
+    }
+    .sidebar-group { margin-bottom: 0.2rem; }
+    .sidebar-group-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600;
+      color: var(--gold-800); cursor: pointer;
+      font-family: 'Noto Serif', serif;
+      transition: background 0.1s;
+    }
+    .sidebar-group-btn:hover { background: var(--gold-50); }
+    .sidebar-group-btn.active { background: var(--gold-100); color: var(--gold-900); }
+    .sidebar-chevron { font-size: 0.6rem; transition: transform 0.2s; color: var(--gold-500); }
+    .sidebar-items { display: none; padding: 0 0 0 0.75rem; }
+    .sidebar-items.open { display: block; }
+    .sidebar-item {
+      padding: 0.3rem 0.75rem; font-size: 0.78rem; color: var(--ink-muted);
+      cursor: pointer; border-radius: 4px; border-left: 2px solid transparent;
+      transition: background 0.1s, color 0.1s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-item:hover { background: var(--gold-50); color: var(--gold-800); }
+    .sidebar-item.active { background: var(--gold-50); color: var(--gold-800); border-left-color: var(--gold-500); }
+
+    /* Reader content pane */
+    .reader-content {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      height: calc(100vh - 120px);
+      background: white;
+    }
+    #reader-view.table-mode .reader-content {
+      padding: 1rem 1.5rem;
+      height: auto;
       background: transparent;
-      border-radius: 8px;
     }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #a5b4fc;
-      border-radius: 8px;
+
+    /* Row cards */
+    .row-card {
+      background: white; border: 1px solid var(--gold-200);
+      border-radius: 10px; margin-bottom: 1.25rem; overflow: hidden;
     }
-    .mark-search {
-      background: #fde047;
-      color: #1e293b;
-      border-radius: 4px;
-      padding: 0 2px;
-      font-weight: 600;
-      box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4);
+    .row-card.highlighted { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
+    .row-card-header {
+      background: var(--gold-50); border-bottom: 1px solid var(--gold-100);
+      padding: 0.55rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.4rem;
     }
-    .row-striped tbody tr:nth-child(even) {
-      background-color: #f8fafc;
+    .row-card-ref {
+      font-size: 0.7rem; font-family: 'Inter', monospace;
+      color: var(--gold-700); font-weight: 600; letter-spacing: 0.06em;
     }
-    .glass-panel {
-      backdrop-filter: blur(10px);
-      background: rgba(255,255,255,0.8);
+    .row-card-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .row-card-tag {
+      font-size: 0.63rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+      background: white; border: 1px solid var(--gold-200); color: var(--ink-muted);
+    }
+    .row-card-tag strong { font-weight: 600; color: var(--gold-700); margin-right: 0.2rem; }
+    .row-card-body { padding: 0.85rem 1rem; }
+    .row-card-primary {
+      font-family: 'Noto Serif', serif;
+      font-size: 1rem; line-height: 1.85; color: var(--ink); margin-bottom: 0.6rem;
+    }
+    .row-card-field {
+      font-size: 0.82rem; color: var(--ink-muted); line-height: 1.65;
+      padding: 0.5rem 0.7rem; margin-top: 0.5rem;
+      background: var(--gold-50); border-radius: 6px;
+      border-left: 3px solid var(--gold-300);
+    }
+    .row-card-field-label {
+      font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold-600); font-weight: 700; margin-bottom: 0.2rem;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Section heading in reader */
+    .section-heading {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1.25rem; padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--divider);
+    }
+    .section-heading h2 {
+      font-family: 'Noto Serif', serif;
+      font-size: 1.1rem; font-weight: 600; color: var(--gold-900);
+    }
+    .section-badge {
+      font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
+      background: var(--gold-100); color: var(--gold-800);
+      border: 1px solid var(--gold-200); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
+    }
+    .group-block { margin-bottom: 2.5rem; }
+    .group-label {
+      font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-faint); font-weight: 700; margin-bottom: 0.85rem;
+    }
+
+    /* Search highlight in reader */
+    mark.hl {
+      background: var(--gold-200); color: var(--ink);
+      border-radius: 3px; padding: 0 2px; font-weight: 600;
+    }
+    @keyframes pulse-gold {
+      0%   { box-shadow: 0 0 0 0   rgba(251,191,36,0.5); }
+      100% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+    }
+    .search-flash { animation: pulse-gold 0.6s ease-out; }
+
+    /* ---- TABLE MODE WITHIN READER VIEW ---- */
+    #table-fallback { display: none; }
+    .table-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+      padding: 0.75rem 0 0.75rem;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 230px; max-width: 380px; }
+    .search-icon-left {
+      position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+      color: var(--gold-600); pointer-events: none; font-size: 0.85rem;
+    }
+    #table-search-input {
+      width: 100%; padding: 0.45rem 6.5rem 0.45rem 2.1rem;
+      background: white; border: 1px solid var(--gold-300);
+      border-radius: 99px; font-size: 0.84rem; color: var(--ink);
+      font-family: 'Inter', sans-serif; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #table-search-input:focus { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
+    #table-search-input::placeholder { color: var(--ink-faint); }
+    #table-search-controls {
+      display: none; position: absolute; inset-y: 4px; right: 4px;
+      align-items: center; gap: 1px; background: white; border-radius: 99px; padding: 0 4px;
+    }
+    #table-search-controls.visible { display: flex; }
+    #table-search-count { font-size: 0.68rem; font-family: monospace; color: var(--ink-faint); padding: 0 0.35rem; white-space: nowrap; }
+    #table-search-count.no-results { color: #dc2626; }
+    .snav-btn {
+      padding: 4px; border-radius: 50%; background: none; border: none; cursor: pointer;
+      color: var(--gold-700); display: flex; align-items: center; justify-content: center; transition: background 0.1s;
+    }
+    .snav-btn:hover { background: var(--gold-100); }
+    .sclear-btn {
+      padding: 4px; border-radius: 50%; background: none; border: none; cursor: pointer;
+      color: var(--ink-faint); display: flex; align-items: center; justify-content: center; transition: background 0.1s, color 0.1s;
+    }
+    .sclear-btn:hover { background: #fee2e2; color: #dc2626; }
+
+    /* Column dropdown */
+    #col-dropdown { position: relative; flex-shrink: 0; }
+    #col-dropdown-btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-size: 0.78rem; font-weight: 600; font-family: 'Inter', sans-serif;
+      color: var(--gold-800); background: white; border: 1px solid var(--gold-300);
+      border-radius: 99px; padding: 0.42rem 0.85rem; cursor: pointer; transition: all 0.15s;
+    }
+    #col-dropdown-btn:hover { border-color: var(--gold-500); background: var(--gold-50); }
+    #col-panel-wrap {
+      display: none; position: absolute; right: 0; top: calc(100% + 8px);
+      width: 270px; background: white; border: 1px solid var(--gold-200);
+      border-radius: 12px; box-shadow: 0 8px 32px rgba(180,83,9,0.12); z-index: 20; padding: 0.85rem;
+    }
+    #col-panel-wrap.open { display: block; }
+    .col-dh {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.55rem; padding-bottom: 0.45rem; border-bottom: 1px solid var(--gold-100);
+    }
+    .col-dh-title { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+    .col-dh-btns { display: flex; gap: 0.4rem; font-size: 0.74rem; font-weight: 600; }
+    .col-dh-btns button { background: none; border: none; cursor: pointer; color: var(--gold-700); transition: color 0.1s; }
+    .col-dh-btns button:hover { color: var(--gold-900); }
+    #col-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 0.4rem; max-height: 210px; overflow-y: auto; }
+    .col-lbl {
+      display: flex; align-items: center; gap: 0.35rem;
+      font-size: 0.78rem; color: var(--ink-muted); padding: 0.28rem 0.35rem; border-radius: 5px; cursor: pointer; transition: background 0.1s;
+    }
+    .col-lbl:hover { background: var(--gold-50); }
+    .col-lbl input { accent-color: var(--gold-600); flex-shrink: 0; }
+    .col-lbl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* The actual table */
+    .table-card {
+      background: white; border: 1px solid var(--gold-200);
+      border-radius: 12px; box-shadow: 0 2px 16px rgba(180,83,9,0.08); overflow: hidden;
+    }
+    .table-scroll { overflow: auto; max-height: 65vh; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 600px; }
+    thead th {
+      position: sticky; top: 0; z-index: 5;
+      background: linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);
+      border-bottom: 2px solid var(--gold-300);
+      padding: 0.8rem 1.1rem; text-align: left;
+      font-size: 0.67rem; letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--gold-800); font-weight: 700; white-space: nowrap;
+    }
+    tbody td {
+      padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--gold-50);
+      color: var(--ink-muted); vertical-align: top; line-height: 1.65; white-space: nowrap;
+    }
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover { background: #fff9e6 !important; }
+    tbody tr:nth-child(even) { background: #fef9f0; }
+    tbody tr.is-current { background: var(--gold-100) !important; outline: 2px solid var(--gold-400); outline-offset: -2px; }
+    tbody tr.is-match { background: #fffbeb !important; }
+    mark.mark-search {
+      background: var(--gold-200); color: var(--ink);
+      border-radius: 3px; padding: 0 2px; font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(251,191,36,0.5);
+    }
+    .row-count { text-align: right; padding: 0.45rem 0.25rem; font-size: 0.7rem; color: var(--ink-faint); }
+
+    /* ---- STATUS OVERLAY ---- */
+    #status-message {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(253,246,227,0.85); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    #status-message.visible { display: flex; }
+    .status-card {
+      display: flex; flex-direction: column; align-items: center; gap: 1rem;
+      background: white; border: 1px solid var(--gold-200); border-radius: 16px;
+      padding: 2.5rem 3rem; box-shadow: 0 8px 40px rgba(180,83,9,0.12);
+    }
+    .spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid var(--gold-200); border-top-color: var(--gold-500);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status-text { font-family: 'Noto Serif', serif; color: var(--gold-800); font-size: 1rem; }
+    #status-text.error { color: #dc2626; font-family: 'Inter', sans-serif; font-size: 0.88rem; }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 700px) {
+      .reader-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--divider); max-height: 38vh; }
+      .reader-content { height: auto; padding: 1rem; }
+      #reader-view.table-mode .reader-content { padding: 0.5rem; }
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16" style="font-family: 'Inter', system-ui, sans-serif;">
+<body>
 
-  <!-- Premium navigation with subtle gradient & shadow -->
-  <nav class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-      <a href="index.html" class="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent hover:scale-105 transition-transform">
-        <span class="text-3xl">📜</span> Malolan
-      </a>
-      <div id="nav-file-name" class="hidden text-sm font-medium text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full"></div>
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand"><span>📜</span> Malolan</a>
+    <div class="nav-search-wrap" id="global-search-wrap">
+      <span class="nav-search-icon">⌕</span>
+      <input id="global-search" type="text" placeholder="Search text… (/ to focus)" autocomplete="off">
+      <span id="global-search-count"></span>
     </div>
-  </nav>
+    <div id="nav-file-name"></div>
+  </div>
+</nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-    <!-- Homepage view -->
-    <div id="homepage-view" class="hidden">
-      <div class="text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight">Explore your <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">sacred texts</span></h1>
-        <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Select a dataset to view an interactive, searchable table with column controls.</p>
-      </div>
-      <ul id="file-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- dynamic file cards -->
-      </ul>
-    </div>
+<!-- Status overlay -->
+<div id="status-message">
+  <div class="status-card">
+    <div class="spinner"></div>
+    <p id="status-text">Loading sacred texts…</p>
+  </div>
+</div>
 
-    <!-- Table view -->
-    <div id="table-view" class="hidden">
-      <!-- Toolbar: back, search, column visibility -->
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-full shadow-sm border border-indigo-100 hover:shadow-md transition">
-          <span>←</span> Datasets
-        </a>
+<!-- Homepage -->
+<div id="homepage-view">
+  <div class="home-hero">
+    <h1>Explore your <em>sacred texts</em></h1>
+    <div class="gold-rule"></div>
+    <p>Select a dataset to open an interactive, searchable reader with column controls.</p>
+  </div>
+  <ul id="file-list" class="file-grid"></ul>
+</div>
 
-        <!-- Search with premium style -->
-        <div class="relative flex-1 min-w-[280px] max-w-lg">
-          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <input id="search-input" type="text" autocomplete="off" placeholder="Search rows… (press / to focus)"
-            class="w-full pl-11 pr-28 py-3 text-sm bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all" />
-          <div id="search-controls" class="hidden absolute inset-y-1 right-1 flex items-center gap-1 bg-white/90 rounded-xl px-1">
-            <span id="search-count" class="text-xs font-mono text-slate-500 px-2 select-none whitespace-nowrap"></span>
-            <button id="search-prev" type="button" title="Previous (Shift+Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" /></svg>
-            </button>
-            <button id="search-next" type="button" title="Next (Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
-            </button>
-            <button id="search-clear" type="button" title="Clear (Esc)" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-600 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd" /></svg>
-            </button>
-          </div>
-        </div>
+<!-- Reader/Table view -->
+<div id="reader-view">
+  <a href="index.html" class="back-btn">← All datasets</a>
 
-        <!-- Column visibility dropdown -->
-        <div id="column-dropdown" class="relative shrink-0">
-          <button id="column-dropdown-btn" type="button"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-5.414 5.414a1 1 0 00-.293.707V17l-4-2v-3.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd" />
-            </svg>
-            <span id="column-count-label">Columns</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
-          </button>
-          <div id="column-dropdown-panel-wrapper"
-            class="hidden absolute right-0 mt-3 w-72 sm:w-96 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl z-20 p-4">
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Toggle columns</span>
-              <div class="flex gap-2 text-xs font-semibold">
-                <button id="column-select-all" class="text-indigo-600 hover:text-indigo-800">All</button>
-                <span class="text-slate-300">|</span>
-                <button id="column-select-none" class="text-indigo-600 hover:text-indigo-800">None</button>
-              </div>
+  <!-- View mode toggle -->
+  <div class="view-mode-bar">
+    <button class="view-btn active" id="btn-reader">Reader view</button>
+    <button class="view-btn" id="btn-table">Table view</button>
+  </div>
+
+  <div class="reader-layout">
+    <!-- Sidebar (reader mode only) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">Contents</div>
+      <div id="sidebar-tree"></div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="reader-content">
+      <!-- Reader body -->
+      <div id="reader-body"></div>
+
+      <!-- Table fallback -->
+      <div id="table-fallback">
+        <div class="table-toolbar">
+          <!-- table search -->
+          <div class="search-wrap">
+            <span class="search-icon-left">⌕</span>
+            <input id="table-search-input" type="text" autocomplete="off" placeholder="Search rows… (/ to focus)">
+            <div id="table-search-controls">
+              <span id="table-search-count"></span>
+              <button class="snav-btn" id="tsearch-prev" title="Previous">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd"/></svg>
+              </button>
+              <button class="snav-btn" id="tsearch-next" title="Next">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+              </button>
+              <button class="sclear-btn" id="tsearch-clear" title="Clear">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd"/></svg>
+              </button>
             </div>
-            <div id="column-dropdown-panel" class="grid grid-cols-2 gap-x-3 gap-y-1 max-h-60 overflow-y-auto custom-scroll"></div>
+          </div>
+          <!-- column toggle -->
+          <div id="col-dropdown">
+            <button id="col-dropdown-btn" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="color:var(--gold-600)"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-5.414 5.414a1 1 0 00-.293.707V17l-4-2v-3.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd"/></svg>
+              <span id="col-count-label">Columns</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 20 20" fill="currentColor" style="color:var(--ink-faint)"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+            </button>
+            <div id="col-panel-wrap">
+              <div class="col-dh">
+                <span class="col-dh-title">Toggle columns</span>
+                <div class="col-dh-btns">
+                  <button id="col-all">All</button>
+                  <span style="color:var(--gold-200)">|</span>
+                  <button id="col-none">None</button>
+                </div>
+              </div>
+              <div id="col-panel"></div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Table card with glass effect -->
-      <div class="bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl overflow-hidden border border-slate-200/80">
-        <div id="table-scroll-container" class="overflow-auto custom-scroll" style="max-height: 70vh;">
-          <table id="data-table" class="w-full text-left border-collapse row-striped">
-            <!-- dynamic content -->
-          </table>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table id="raw-table"></table>
+          </div>
         </div>
+        <div class="row-count" id="row-count-el"></div>
+      </div><!-- /table-fallback -->
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---- CONFIG ----
+  const tsvFiles = [
+    "agama_pramanya.tsv",
+    "aniruddha_samhita.tsv",
+    "lakshmi-tantram.tsv",
+    "paramapurush-samhita.tsv",
+    "paushkara-samhita.tsv",
+    "sri-parameshvara-samhita.tsv",
+    "sriprashna-samhita.tsv",
+    "sri-vishvaksena-samhita.tsv",
+    "vishnu-samhita.tsv"
+  ];
+  const DATA_FOLDER = "data/";
+
+  // ---- DOM ----
+  const homepageView   = document.getElementById('homepage-view');
+  const readerView     = document.getElementById('reader-view');
+  const fileListEl     = document.getElementById('file-list');
+  const navFileName    = document.getElementById('nav-file-name');
+  const globalSearch   = document.getElementById('global-search');
+  const globalSearchWrap = document.getElementById('global-search-wrap');
+  const globalSearchCount = document.getElementById('global-search-count');
+  const statusMessage  = document.getElementById('status-message');
+  const statusText     = document.getElementById('status-text');
+  const btnReader      = document.getElementById('btn-reader');
+  const btnTable       = document.getElementById('btn-table');
+  const sidebarTree    = document.getElementById('sidebar-tree');
+  const readerBody     = document.getElementById('reader-body');
+  const tableFallback  = document.getElementById('table-fallback');
+  const rawTable       = document.getElementById('raw-table');
+  const rowCountEl     = document.getElementById('row-count-el');
+  // table search
+  const tSearchInput   = document.getElementById('table-search-input');
+  const tSearchControls= document.getElementById('table-search-controls');
+  const tSearchCount   = document.getElementById('table-search-count');
+  const tSearchPrev    = document.getElementById('tsearch-prev');
+  const tSearchNext    = document.getElementById('tsearch-next');
+  const tSearchClear   = document.getElementById('tsearch-clear');
+  // col dropdown
+  const colDropdown    = document.getElementById('col-dropdown');
+  const colDropdownBtn = document.getElementById('col-dropdown-btn');
+  const colPanelWrap   = document.getElementById('col-panel-wrap');
+  const colPanel       = document.getElementById('col-panel');
+  const colCountLabel  = document.getElementById('col-count-label');
+  const colAllBtn      = document.getElementById('col-all');
+  const colNoneBtn     = document.getElementById('col-none');
+
+  // ---- STATE ----
+  let currentHeaders = [], currentRows = [], visibleColumns = [];
+  let viewMode = 'reader';
+  let readerSearchMatches = [], readerSearchPointer = -1, currentQuery = '';
+  let tableSearchMatches = [], tableSearchPointer = -1, tableSearchQuery = '';
+  let tableDebounce = null, readerDebounce = null;
+
+  // ---- HELPERS ----
+  const esc = s => !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  function showStatus(msg, isErr=false) {
+    statusMessage.classList.add('visible');
+    statusText.textContent = msg;
+    statusText.className = isErr ? 'error' : '';
+  }
+  function hideStatus() { statusMessage.classList.remove('visible'); }
+
+  // ---- ROUTING ----
+  window.addEventListener('DOMContentLoaded', () => {
+    const p = new URLSearchParams(window.location.search);
+    const f = p.get('file');
+    if (f && tsvFiles.includes(f)) loadFile(f);
+    else renderHome();
+  });
+
+  function renderHome() {
+    homepageView.style.display = 'block';
+    readerView.style.display = 'none';
+    fileListEl.innerHTML = '';
+    tsvFiles.forEach(file => {
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="?file=${encodeURIComponent(file)}" class="file-card">
+        <div class="file-icon">📄</div>
+        <div class="file-info">
+          <div class="file-name">${esc(file)}</div>
+          <div class="file-cta">Explore →</div>
+        </div>
+      </a>`;
+      fileListEl.appendChild(li);
+    });
+  }
+
+  function loadFile(fileName) {
+    showStatus('Loading dataset…');
+    homepageView.style.display = 'none';
+    readerView.style.display = 'block';
+    navFileName.textContent = fileName;
+    navFileName.style.display = 'block';
+
+    fetch(DATA_FOLDER + fileName)
+      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+      .then(txt => {
+        Papa.parse(txt, {
+          delimiter: '\t', skipEmptyLines: true,
+          complete: res => { processData(res.data); hideStatus(); },
+          error: () => showStatus('Parsing error.', true)
+        });
+      })
+      .catch(() => showStatus(`Failed to load "${fileName}".`, true));
+  }
+
+  // ---- DATA PROCESSING ----
+  function processData(data) {
+    if (!data.length) return;
+    currentHeaders = data[0];
+    currentRows    = data.slice(1);
+    visibleColumns = currentHeaders.map(() => true);
+
+    buildSidebar();
+    renderReader();
+    renderRawTable();
+    buildColDropdown();
+    setViewMode('reader');
+    rowCountEl.textContent = `${currentRows.length} row${currentRows.length !== 1 ? 's' : ''}`;
+  }
+
+  // ---- SIDEBAR ----
+  // Groups rows by their first column value; each unique value becomes a sidebar section.
+  function buildSidebar() {
+    sidebarTree.innerHTML = '';
+    const groups = getGroups();
+    groups.forEach(({ key, rows }) => {
+      const section = document.createElement('div');
+      section.className = 'sidebar-group';
+
+      const btn = document.createElement('div');
+      btn.className = 'sidebar-group-btn';
+      btn.innerHTML = `<span>${esc(key)}</span><span class="sidebar-chevron">▶</span>`;
+      section.appendChild(btn);
+
+      const items = document.createElement('div');
+      items.className = 'sidebar-items';
+
+      // Sub-items: unique values from second column (if exists), else show row count
+      const subKeys = currentHeaders.length > 1
+        ? [...new Set(rows.map(r => r[1] || ''))].slice(0, 50)
+        : [];
+
+      if (subKeys.length > 1) {
+        subKeys.forEach(sub => {
+          const item = document.createElement('div');
+          item.className = 'sidebar-item';
+          item.textContent = sub || '—';
+          item.addEventListener('click', () => {
+            scrollToCard(key, sub);
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+          });
+          items.appendChild(item);
+        });
+      } else {
+        const item = document.createElement('div');
+        item.className = 'sidebar-item';
+        item.textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`;
+        item.addEventListener('click', () => {
+          scrollToCard(key, null);
+          document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+        });
+        items.appendChild(item);
+      }
+      section.appendChild(items);
+
+      btn.addEventListener('click', () => {
+        const open = items.classList.toggle('open');
+        btn.classList.toggle('active', open);
+        btn.querySelector('.sidebar-chevron').style.transform = open ? 'rotate(90deg)' : '';
+      });
+      sidebarTree.appendChild(section);
+    });
+  }
+
+  function getGroups() {
+    const map = new Map();
+    currentRows.forEach(row => {
+      const key = row[0] || '';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(row);
+    });
+    return [...map.entries()].map(([key, rows]) => ({ key, rows }));
+  }
+
+  function scrollToCard(groupKey, subKey) {
+    const id = subKey
+      ? `card-${CSS.escape(groupKey)}-${CSS.escape(subKey)}`
+      : `group-${CSS.escape(groupKey)}`;
+    const el = document.getElementById(id) || document.querySelector(`[data-group="${CSS.escape(groupKey)}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ---- READER VIEW ----
+  function renderReader() {
+    readerBody.innerHTML = '';
+    const groups = getGroups();
+
+    groups.forEach(({ key, rows }) => {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'group-block';
+      groupEl.id = `group-${key}`;
+      groupEl.dataset.group = key;
+
+      const heading = document.createElement('div');
+      heading.className = 'section-heading';
+      heading.innerHTML = `<h2>${esc(key)}</h2><span class="section-badge">${rows.length} row${rows.length !== 1 ? 's' : ''}</span>`;
+      groupEl.appendChild(heading);
+
+      rows.forEach((row, i) => {
+        const card = buildRowCard(row, key, i);
+        groupEl.appendChild(card);
+      });
+
+      readerBody.appendChild(groupEl);
+    });
+  }
+
+  function buildRowCard(row, groupKey, rowIndex) {
+    const card = document.createElement('div');
+    card.className = 'row-card';
+    const sub = currentHeaders.length > 1 ? (row[1] || '') : '';
+    card.id = sub ? `card-${groupKey}-${sub}` : `card-${groupKey}-${rowIndex}`;
+
+    // First column = reference/key, second = primary text (serif), rest = fields
+    const refVal = row[0] || '';
+    const primaryVal = row[1] || '';
+
+    // Tag-style fields from columns 2+
+    let tags = '';
+    for (let i = 2; i < Math.min(row.length, 6); i++) {
+      if (row[i]) {
+        tags += `<span class="row-card-tag"><strong>${esc(currentHeaders[i] || `Col ${i+1}`)}</strong>${esc(row[i])}</span>`;
+      }
+    }
+
+    // Additional fields beyond the first two
+    let fields = '';
+    for (let i = 2; i < row.length; i++) {
+      if (!row[i]) continue;
+      fields += `<div class="row-card-field">
+        <div class="row-card-field-label">${esc(currentHeaders[i] || `Column ${i+1}`)}</div>
+        <div data-searchable>${esc(row[i])}</div>
+      </div>`;
+    }
+
+    card.innerHTML = `
+      <div class="row-card-header">
+        <span class="row-card-ref">${esc(refVal)}</span>
+        <div class="row-card-tags">${tags}</div>
       </div>
-      <div class="mt-3 text-xs text-right text-slate-400 pr-2" id="row-count-indicator"></div>
-    </div>
+      <div class="row-card-body">
+        ${primaryVal ? `<div class="row-card-primary" data-searchable>${esc(primaryVal)}</div>` : ''}
+        ${fields}
+      </div>`;
+    return card;
+  }
 
-    <!-- Status message -->
-    <div id="status-message" class="text-center py-20 hidden">
-      <div class="inline-flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-lg">
-        <div class="animate-spin h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full"></div>
-        <p class="text-lg font-medium text-slate-600" id="status-text">Loading sacred texts...</p>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    (function() {
-      // ----- CONFIGURATION -----
-      const tsvFiles = [
-            "agama_pramanya.tsv",
-            "aniruddha_samhita.tsv",
-            "lakshmi-tantram.tsv",
-            "paramapurush-samhita.tsv",
-            "paushkara-samhita.tsv",
-            "sri-parameshvara-samhita.tsv",
-            "sriprashna-samhita.tsv",
-            "sri-vishvaksena-samhita.tsv",
-            "vishnu-samhita.tsv"
-        ];
-      const dataFolder = "data/";
-
-      // DOM elements
-      const homepageView = document.getElementById('homepage-view');
-      const tableView = document.getElementById('table-view');
-      const fileList = document.getElementById('file-list');
-      const dataTable = document.getElementById('data-table');
-      const statusMessage = document.getElementById('status-message');
-      const statusText = document.getElementById('status-text');
-      const navFileName = document.getElementById('nav-file-name');
-      const columnDropdown = document.getElementById('column-dropdown');
-      const columnDropdownBtn = document.getElementById('column-dropdown-btn');
-      const columnDropdownPanelWrapper = document.getElementById('column-dropdown-panel-wrapper');
-      const columnDropdownPanel = document.getElementById('column-dropdown-panel');
-      const columnCountLabel = document.getElementById('column-count-label');
-      const columnSelectAllBtn = document.getElementById('column-select-all');
-      const columnSelectNoneBtn = document.getElementById('column-select-none');
-      const searchInput = document.getElementById('search-input');
-      const searchControls = document.getElementById('search-controls');
-      const searchCount = document.getElementById('search-count');
-      const searchPrevBtn = document.getElementById('search-prev');
-      const searchNextBtn = document.getElementById('search-next');
-      const searchClearBtn = document.getElementById('search-clear');
-      const rowCountIndicator = document.getElementById('row-count-indicator');
-
-      // State
-      let currentHeaders = [];
-      let currentRows = [];
-      let visibleColumns = [];
-      let searchMatches = [];
-      let searchPointer = -1;
-      let currentSearchQuery = '';
-      let searchDebounceTimer = null;
-
-      // ----- Helpers -----
-      const escapeHtml = (str) => {
-        if (!str) return '';
-        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-      };
-
-      function showStatus(msg, isError = false) {
-        statusMessage.classList.remove('hidden');
-        statusText.textContent = msg;
-        statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
-      }
-
-      function hideStatus() {
-        statusMessage.classList.add('hidden');
-      }
-
-      // ----- Routing -----
-      window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const selectedFile = urlParams.get('file');
-        if (selectedFile && tsvFiles.includes(selectedFile)) {
-          renderTableMode(selectedFile);
-        } else {
-          renderHomeMode();
-        }
+  // ---- RAW TABLE ----
+  function renderRawTable(query = '', matches = [], pointer = -1) {
+    const q = query.toLowerCase();
+    let html = '<thead><tr>';
+    currentHeaders.forEach((h, idx) => {
+      html += `<th data-col-idx="${idx}" style="${visibleColumns[idx] ? '' : 'display:none'}">${esc(h)}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    currentRows.forEach((row, ri) => {
+      const isMatch   = q && matches.includes(ri);
+      const isCurrent = isMatch && matches[pointer] === ri;
+      const cls       = isCurrent ? 'is-current' : isMatch ? 'is-match' : '';
+      html += `<tr data-row-idx="${ri}" class="${cls}">`;
+      row.forEach((cell, ci) => {
+        const content = isMatch ? highlightCell(cell, query) : esc(cell);
+        html += `<td data-col-idx="${ci}" style="${visibleColumns[ci] ? '' : 'display:none'}">${content}</td>`;
       });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    rawTable.innerHTML = html;
+  }
 
-      function renderHomeMode() {
-        homepageView.classList.remove('hidden');
-        tableView.classList.add('hidden');
-        fileList.innerHTML = '';
-        tsvFiles.forEach(file => {
-          const li = document.createElement('li');
-          li.className = "group bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300";
-          li.innerHTML = `
-            <a href="?file=${encodeURIComponent(file)}" class="block">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="text-2xl">📄</span>
-                  <span class="font-semibold text-slate-800 group-hover:text-indigo-700 transition">${escapeHtml(file)}</span>
-                </div>
-                <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full group-hover:bg-indigo-100 transition">Explore →</span>
-              </div>
-            </a>
-          `;
-          fileList.appendChild(li);
-        });
+  function highlightCell(raw, query) {
+    const s = raw || '';
+    const lo = s.toLowerCase(), lq = query.toLowerCase();
+    let idx = lo.indexOf(lq);
+    if (idx === -1) return esc(s);
+    return esc(s.slice(0, idx))
+      + `<mark class="mark-search">${esc(s.slice(idx, idx + query.length))}</mark>`
+      + esc(s.slice(idx + query.length));
+  }
+
+  // ---- VIEW MODE TOGGLE ----
+  function setViewMode(mode) {
+    viewMode = mode;
+    if (mode === 'reader') {
+      btnReader.classList.add('active');
+      btnTable.classList.remove('active');
+      readerBody.style.display = '';
+      tableFallback.style.display = 'none';
+      readerView.classList.remove('table-mode');
+      globalSearchWrap.classList.add('active');
+    } else {
+      btnTable.classList.add('active');
+      btnReader.classList.remove('active');
+      readerBody.style.display = 'none';
+      tableFallback.style.display = 'block';
+      readerView.classList.add('table-mode');
+      globalSearchWrap.classList.remove('active');
+    }
+    // Clear searches on switch
+    clearReaderSearch();
+    clearTableSearch();
+  }
+
+  btnReader.addEventListener('click', () => setViewMode('reader'));
+  btnTable.addEventListener('click', () => setViewMode('table'));
+
+  // ---- READER SEARCH (nav search bar) ----
+  globalSearch.addEventListener('input', e => {
+    clearTimeout(readerDebounce);
+    readerDebounce = setTimeout(() => doReaderSearch(e.target.value), 180);
+  });
+  globalSearch.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (readerSearchMatches.length) navigateReaderSearch(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') clearReaderSearch();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && viewMode === 'reader' && readerView.style.display !== 'none') {
+      if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      e.preventDefault(); globalSearch.focus();
+    }
+    if (e.key === '/' && viewMode === 'table' && readerView.style.display !== 'none') {
+      if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      e.preventDefault(); tSearchInput.focus();
+    }
+  });
+
+  function doReaderSearch(query) {
+    currentQuery = query.trim().toLowerCase();
+    // Remove previous highlights
+    document.querySelectorAll('.row-card').forEach(c => c.classList.remove('highlighted'));
+    document.querySelectorAll('mark.hl').forEach(m => { m.parentNode.replaceChild(document.createTextNode(m.textContent), m); });
+    document.querySelectorAll('[data-searchable]').forEach(el => el.normalize());
+    readerSearchMatches = []; readerSearchPointer = -1;
+
+    if (!currentQuery) { globalSearchCount.textContent = ''; return; }
+
+    document.querySelectorAll('[data-searchable]').forEach(el => highlightInNode(el, currentQuery));
+    readerSearchMatches = Array.from(document.querySelectorAll('mark.hl'));
+    if (readerSearchMatches.length) { readerSearchPointer = 0; scrollToReaderMatch(0); }
+    globalSearchCount.textContent = readerSearchMatches.length
+      ? `${readerSearchPointer + 1}/${readerSearchMatches.length}`
+      : '0 results';
+  }
+
+  function navigateReaderSearch(dir) {
+    if (!readerSearchMatches.length) return;
+    readerSearchPointer = (readerSearchPointer + dir + readerSearchMatches.length) % readerSearchMatches.length;
+    scrollToReaderMatch(readerSearchPointer);
+    globalSearchCount.textContent = `${readerSearchPointer + 1}/${readerSearchMatches.length}`;
+  }
+
+  function scrollToReaderMatch(idx) {
+    const el = readerSearchMatches[idx];
+    if (!el) return;
+    document.querySelectorAll('.row-card').forEach(c => c.classList.remove('highlighted'));
+    const card = el.closest('.row-card');
+    if (card) { card.classList.add('highlighted', 'search-flash'); setTimeout(() => card.classList.remove('search-flash'), 700); }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function clearReaderSearch() { globalSearch.value = ''; doReaderSearch(''); }
+
+  function highlightInNode(container, query) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(textNode => {
+      const text = textNode.nodeValue;
+      const lower = text.toLowerCase();
+      let idx = lower.indexOf(query);
+      if (idx === -1) return;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      while (idx !== -1) {
+        if (idx > last) frag.appendChild(document.createTextNode(text.slice(last, idx)));
+        const mark = document.createElement('mark');
+        mark.className = 'hl';
+        mark.textContent = text.slice(idx, idx + query.length);
+        frag.appendChild(mark);
+        last = idx + query.length;
+        idx = lower.indexOf(query, last);
       }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+  }
 
-      function renderTableMode(fileName) {
-        homepageView.classList.add('hidden');
-        tableView.classList.remove('hidden');
-        navFileName.textContent = fileName;
-        navFileName.classList.remove('hidden');
-        showStatus("Loading and parsing dataset...");
-        const filePath = dataFolder + fileName;
-        fetch(filePath)
-          .then(response => {
-            if (!response.ok) throw new Error("File not found");
-            return response.text();
-          })
-          .then(tsvText => {
-            Papa.parse(tsvText, {
-              delimiter: "\t",
-              skipEmptyLines: true,
-              complete: function(results) {
-                loadTableData(results.data);
-                hideStatus();
-              },
-              error: () => showStatus("Parsing error.", true)
-            });
-          })
-          .catch(() => showStatus(`Failed to load "${fileName}".`, true));
-      }
+  // ---- TABLE SEARCH ----
+  tSearchInput.addEventListener('input', e => {
+    clearTimeout(tableDebounce);
+    tableDebounce = setTimeout(() => doTableSearch(e.target.value), 150);
+  });
+  tSearchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (tableSearchMatches.length) goTableMatch(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { clearTableSearch(); tSearchInput.blur(); }
+  });
+  tSearchPrev.addEventListener('click', () => goTableMatch(-1));
+  tSearchNext.addEventListener('click', () => goTableMatch(1));
+  tSearchClear.addEventListener('click', () => { clearTableSearch(); tSearchInput.focus(); });
 
-      function loadTableData(data) {
-        if (!data.length) {
-          currentHeaders = [];
-          currentRows = [];
-          dataTable.innerHTML = '<tr><td class="p-10 text-center text-slate-400">Empty dataset</td></tr>';
-          columnDropdown.classList.add('hidden');
-          return;
-        }
-        currentHeaders = data[0];
-        currentRows = data.slice(1);
-        visibleColumns = currentHeaders.map(() => true);
-        searchMatches = [];
-        searchPointer = -1;
-        currentSearchQuery = '';
-        searchInput.value = '';
-        searchControls.classList.add('hidden');
-        columnDropdown.classList.remove('hidden');
-        buildColumnDropdown();
-        renderTable();
-        updateRowCount();
-      }
-
-      function buildColumnDropdown() {
-        columnDropdownPanel.innerHTML = '';
-        currentHeaders.forEach((header, idx) => {
-          const label = document.createElement('label');
-          label.className = "flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50 cursor-pointer transition text-sm";
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.checked = true;
-          checkbox.dataset.colIdx = idx;
-          checkbox.className = "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500";
-          checkbox.addEventListener('change', (e) => {
-            visibleColumns[idx] = e.target.checked;
-            applyColumnVisibility(idx);
-            updateColumnCountLabel();
-          });
-          const span = document.createElement('span');
-          span.className = "text-slate-700 truncate";
-          span.textContent = header || `Column ${idx+1}`;
-          label.appendChild(checkbox);
-          label.appendChild(span);
-          columnDropdownPanel.appendChild(label);
-        });
-        updateColumnCountLabel();
-      }
-
-      function applyColumnVisibility(idx) {
-        const isVisible = visibleColumns[idx];
-        dataTable.querySelectorAll(`[data-col-idx="${idx}"]`).forEach(el => {
-          el.classList.toggle('hidden', !isVisible);
-        });
-      }
-
-      function updateColumnCountLabel() {
-        const shown = visibleColumns.filter(Boolean).length;
-        const total = visibleColumns.length;
-        columnCountLabel.textContent = shown === total ? `Columns (${total})` : `${shown}/${total}`;
-      }
-
-      function updateRowCount() {
-        if (rowCountIndicator) {
-          rowCountIndicator.textContent = `${currentRows.length} row${currentRows.length !== 1 ? 's' : ''}`;
-        }
-      }
-
-      function renderTable(query = '') {
-        let html = `<thead class="bg-slate-50/90 backdrop-blur-sm border-b border-slate-200"><tr>`;
-        currentHeaders.forEach((header, idx) => {
-          const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
-          html += `<th data-col-idx="${idx}" class="sticky top-0 bg-slate-50/95 backdrop-blur-sm px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-600 z-10 ${hiddenClass}">${escapeHtml(header)}</th>`;
-        });
-        html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-
-        currentRows.forEach((row, rowIdx) => {
-          const isMatch = query && searchMatches.includes(rowIdx);
-          const isCurrent = isMatch && searchMatches[searchPointer] === rowIdx;
-          let rowClass = 'transition-colors duration-150';
-          if (isCurrent) rowClass = 'bg-indigo-50 ring-2 ring-inset ring-indigo-400';
-          else if (isMatch) rowClass = 'bg-amber-50/70';
-
-          html += `<tr data-row-idx="${rowIdx}" class="${rowClass}">`;
-          row.forEach((cell, idx) => {
-            const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
-            const cellContent = isMatch ? highlightCell(cell, query) : escapeHtml(cell);
-            html += `<td data-col-idx="${idx}" class="px-6 py-3 text-sm text-slate-600 whitespace-nowrap ${hiddenClass}">${cellContent}</td>`;
-          });
-          html += `</tr>`;
-        });
-        html += `</tbody>`;
-        dataTable.innerHTML = html;
-      }
-
-      function highlightCell(rawCell, query) {
-        const cellStr = rawCell || '';
-        if (!query) return escapeHtml(cellStr);
-        const lowerCell = cellStr.toLowerCase();
-        const lowerQuery = query.toLowerCase();
-        const idx = lowerCell.indexOf(lowerQuery);
-        if (idx === -1) return escapeHtml(cellStr);
-        const before = cellStr.slice(0, idx);
-        const match = cellStr.slice(idx, idx + query.length);
-        const after = cellStr.slice(idx + query.length);
-        return escapeHtml(before) + `<mark class="mark-search">${escapeHtml(match)}</mark>` + escapeHtml(after);
-      }
-
-      function performSearch(query) {
-        currentSearchQuery = query.trim();
-        searchMatches = [];
-        searchPointer = -1;
-        const q = currentSearchQuery.toLowerCase();
-        if (q) {
-          currentRows.forEach((row, idx) => {
-            if (row.some(cell => (cell || '').toLowerCase().includes(q))) {
-              searchMatches.push(idx);
-            }
-          });
-          if (searchMatches.length) searchPointer = 0;
-        }
-        renderTable(currentSearchQuery);
-        updateSearchUI();
-        if (searchPointer !== -1) scrollToMatch();
-      }
-
-      function goToMatch(offset) {
-        if (!searchMatches.length) return;
-        searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
-        renderTable(currentSearchQuery);
-        updateSearchUI();
-        scrollToMatch();
-      }
-
-      function scrollToMatch() {
-        if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
-        const rowEl = dataTable.querySelector(`tr[data-row-idx="${searchMatches[searchPointer]}"]`);
-        if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-
-      function updateSearchUI() {
-        if (!currentSearchQuery) {
-          searchControls.classList.add('hidden');
-          return;
-        }
-        searchControls.classList.remove('hidden');
-        if (!searchMatches.length) {
-          searchCount.textContent = '0/0';
-          searchCount.className = "text-xs font-mono text-rose-500 px-2";
-        } else {
-          searchCount.textContent = `${searchPointer+1}/${searchMatches.length}`;
-          searchCount.className = "text-xs font-mono text-slate-600 px-2";
-        }
-      }
-
-      function clearSearch() {
-        searchInput.value = '';
-        performSearch('');
-      }
-
-      // Event listeners
-      searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 150);
+  function doTableSearch(query) {
+    tableSearchQuery = query.trim();
+    tableSearchMatches = []; tableSearchPointer = -1;
+    const q = tableSearchQuery.toLowerCase();
+    if (q) {
+      currentRows.forEach((row, idx) => {
+        if (row.some(cell => (cell || '').toLowerCase().includes(q))) tableSearchMatches.push(idx);
       });
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (searchMatches.length) goToMatch(e.shiftKey ? -1 : 1);
-        } else if (e.key === 'Escape') {
-          clearSearch();
-          searchInput.blur();
-        }
-      });
-      searchPrevBtn.addEventListener('click', () => goToMatch(-1));
-      searchNextBtn.addEventListener('click', () => goToMatch(1));
-      searchClearBtn.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
+      if (tableSearchMatches.length) tableSearchPointer = 0;
+    }
+    renderRawTable(tableSearchQuery, tableSearchMatches, tableSearchPointer);
+    updateTableSearchUI();
+    if (tableSearchPointer !== -1) scrollToTableMatch();
+  }
 
-      document.addEventListener('keydown', (e) => {
-        if (e.key === '/' && !tableView.classList.contains('hidden')) {
-          const tag = document.activeElement?.tagName;
-          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-          e.preventDefault();
-          searchInput.focus();
-        }
-      });
+  function goTableMatch(offset) {
+    if (!tableSearchMatches.length) return;
+    tableSearchPointer = (tableSearchPointer + offset + tableSearchMatches.length) % tableSearchMatches.length;
+    renderRawTable(tableSearchQuery, tableSearchMatches, tableSearchPointer);
+    updateTableSearchUI();
+    scrollToTableMatch();
+  }
 
-      columnDropdownBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        columnDropdownPanelWrapper.classList.toggle('hidden');
+  function scrollToTableMatch() {
+    const row = rawTable.querySelector(`tr[data-row-idx="${tableSearchMatches[tableSearchPointer]}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function updateTableSearchUI() {
+    if (!tableSearchQuery) { tSearchControls.classList.remove('visible'); return; }
+    tSearchControls.classList.add('visible');
+    if (!tableSearchMatches.length) {
+      tSearchCount.textContent = '0 results';
+      tSearchCount.className = 'no-results';
+    } else {
+      tSearchCount.textContent = `${tableSearchPointer + 1}/${tableSearchMatches.length}`;
+      tSearchCount.className = '';
+    }
+  }
+
+  function clearTableSearch() {
+    tSearchInput.value = '';
+    doTableSearch('');
+  }
+
+  // ---- COLUMN TOGGLE ----
+  function buildColDropdown() {
+    colPanel.innerHTML = '';
+    currentHeaders.forEach((header, idx) => {
+      const label = document.createElement('label');
+      label.className = 'col-lbl';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = true; cb.dataset.colIdx = idx;
+      cb.addEventListener('change', e => {
+        visibleColumns[idx] = e.target.checked;
+        applyColVis(idx);
+        updateColLabel();
       });
-      document.addEventListener('click', (e) => {
-        if (!columnDropdown.contains(e.target)) columnDropdownPanelWrapper.classList.add('hidden');
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') columnDropdownPanelWrapper.classList.add('hidden');
-      });
-      columnSelectAllBtn.addEventListener('click', () => {
-        visibleColumns = visibleColumns.map(() => true);
-        columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-        currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
-        updateColumnCountLabel();
-      });
-      columnSelectNoneBtn.addEventListener('click', () => {
-        visibleColumns = visibleColumns.map(() => false);
-        columnDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        currentHeaders.forEach((_, idx) => applyColumnVisibility(idx));
-        updateColumnCountLabel();
-      });
-    })();
-  </script>
+      const span = document.createElement('span');
+      span.textContent = header || `Col ${idx + 1}`;
+      label.appendChild(cb); label.appendChild(span);
+      colPanel.appendChild(label);
+    });
+    updateColLabel();
+  }
+
+  function applyColVis(idx) {
+    rawTable.querySelectorAll(`[data-col-idx="${idx}"]`).forEach(el => {
+      el.style.display = visibleColumns[idx] ? '' : 'none';
+    });
+  }
+
+  function updateColLabel() {
+    const shown = visibleColumns.filter(Boolean).length;
+    const total = visibleColumns.length;
+    colCountLabel.textContent = shown === total ? `Columns (${total})` : `${shown} / ${total}`;
+  }
+
+  colDropdownBtn.addEventListener('click', e => { e.stopPropagation(); colPanelWrap.classList.toggle('open'); });
+  document.addEventListener('click', e => { if (!colDropdown.contains(e.target)) colPanelWrap.classList.remove('open'); });
+  colAllBtn.addEventListener('click', () => {
+    visibleColumns = visibleColumns.map(() => true);
+    colPanel.querySelectorAll('input').forEach(cb => cb.checked = true);
+    currentHeaders.forEach((_, i) => applyColVis(i));
+    updateColLabel();
+  });
+  colNoneBtn.addEventListener('click', () => {
+    visibleColumns = visibleColumns.map(() => false);
+    colPanel.querySelectorAll('input').forEach(cb => cb.checked = false);
+    currentHeaders.forEach((_, i) => applyColVis(i));
+    updateColLabel();
+  });
+
+})();
+</script>
 </body>
 </html>
-``` 
