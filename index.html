@@ -530,9 +530,6 @@
     body.reading-mode .verse-translation { font-size: 1.05rem; }
 
     /* ═══ FONT SIZE ═══ */
-    /* Applied on the ROOT element so every `rem`-based size in this file
-       (verses, commentaries, sidebar, dropdowns, etc.) scales together,
-       proportionally, from a single source of truth. */
     html[data-fz="xs"]  { font-size: 13px; }
     html[data-fz="sm"]  { font-size: 14.5px; }
     html[data-fz="md"]  { font-size: 16px; }
@@ -610,8 +607,8 @@
     }
     .reading-meta span::before { content: '·'; margin-right: 0.4rem; }
     .reading-meta span:first-child::before { display: none; }
-  
-/* ═══ TEXT ATTRIBUTION (author / category) ═══ */
+
+    /* ═══ TEXT ATTRIBUTION (author / category) ═══ */
     .text-attribution {
       display: flex; flex-wrap: wrap; gap: 0.65rem;
       margin: 0 0 1.75rem;
@@ -635,7 +632,7 @@
     .attr-body {
       display: flex; align-items: baseline; gap: 0.4rem;
     }
-    .attr-label {   
+    .attr-label {
       font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
       text-transform: uppercase; color: var(--text-muted);
     }
@@ -646,26 +643,24 @@
       color: var(--accent-text);
     }
 
-/* Tablets */
-@media (min-width:681px) and (max-width:1024px) {
-  :root { --sidebar-w: 320px; }
-  #content-area { padding: 1.5rem; max-width: 100%; }
-  .section-name { font-size: 1.2rem; }
-  .verse-original, .verse-translation { font-size: 1rem; }
-  #search-input-box { max-width: 100%; }
-  #nav-breadcrumb { display:none; }
-}
+    /* Tablets */
+    @media (min-width:681px) and (max-width:1024px) {
+      :root { --sidebar-w: 320px; }
+      #content-area { padding: 1.5rem; max-width: 100%; }
+      .section-name { font-size: 1.2rem; }
+      .verse-original, .verse-translation { font-size: 1rem; }
+      #search-input-box { max-width: 100%; }
+      #nav-breadcrumb { display:none; }
+    }
 
-
-@media (max-width:680px) {
-  #nav { gap:.3rem; padding:0 .5rem; }
-  #nav-breadcrumb { display:none; }
-  #fz-control { display:none; }
-  .verse-actions { opacity:1; }
-  .file-grid { grid-template-columns:1fr; }
-}
-
-</style>
+    @media (max-width:680px) {
+      #nav { gap:.3rem; padding:0 .5rem; }
+      #nav-breadcrumb { display:none; }
+      #fz-control { display:none; }
+      .verse-actions { opacity:1; }
+      .file-grid { grid-template-columns:1fr; }
+    }
+  </style>
 </head>
 <body>
 
@@ -737,8 +732,6 @@
       </div>
     </div>
 
-
-
     <!-- CONTENT AREA -->
     <div id="content-area">
       <!-- HOME VIEW -->
@@ -767,18 +760,28 @@
 <button id="jump-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" aria-label="Scroll to top">↑</button>
 
 <script>
-// FILES is populated at startup by loadManifest() from data/manifest.json,
-// which is a simple JSON array of filenames, e.g. ["foo.json","bar.json"].
-// To add a new text: drop its JSON into /data/ and add its filename to manifest.json.
-let FILES = [];
+// ──────────────────────────────────────────────
+// FILE LIST — hardcoded; no manifest.json needed.
+// To add a new text: drop its JSON into /data/ and add its filename here.
+// ──────────────────────────────────────────────
+let FILES = [
+  "agama-pramanyam.json",
+  "aniruddha-samhita.json",
+  "lakshmi-tantram.json",
+  "paramapurusha-samhita.json",
+  "paushkara-samhita.json",
+  "sriprashna-samhita.json",
+  "sri-vishvaksena-samhita.json",
+  "vishnu-samhita.json",
+  "sri-parameshvara-samhita.json"
+];
+
 const DATA = "data/";
-const MANIFEST = DATA + "manifest.json";
 
 let currentData = null;
 let currentFile = '';
 let searchMatches = [];
 let searchIdx = -1;
-// Font sizes: each step is a named root size, and the % label is relative to "md" (16px = 100%)
 const FONT_STEPS = ['xs','sm','md','lg','xl','xxl'];
 const FONT_STEP_PX = { xs:13, sm:14.5, md:16, lg:17.5, xl:19, xxl:21 };
 let fzIdx = 2; // 'md'
@@ -786,7 +789,7 @@ let isDark = false;
 let isReading = false;
 let tocObserver = null;
 // Sitewide search index
-let swIndex = {}; // { filename: parsedData }
+let swIndex = {};
 let swIndexLoaded = new Set();
 let swSearchTimer = null;
 let swSelectedIdx = -1;
@@ -832,25 +835,14 @@ window.addEventListener('DOMContentLoaded', () => {
   // Sitewide search
   swInput.addEventListener('input', () => { clearTimeout(swSearchTimer); swSearchTimer = setTimeout(doSitewideSearch, 250); });
   swInput.addEventListener('keydown', onSwKey);
+  // Boot directly — no manifest fetch needed
   loadManifest();
 });
 
 // ──────────────────────────────────────────────
-// MANIFEST — populates FILES from data/manifest.json
+// MANIFEST — uses hardcoded FILES list above
 // ──────────────────────────────────────────────
-async function loadManifest() {
-  const grid = document.getElementById('file-grid');
-  grid.innerHTML = '<p style="font-size:0.85rem;color:var(--text-muted);padding:1rem 0;">Loading library…</p>';
-  try {
-    const res = await fetch(MANIFEST);
-    if (!res.ok) throw new Error('manifest.json not found (HTTP ' + res.status + ')');
-    const files = await res.json();
-    if (!Array.isArray(files) || !files.length) throw new Error('manifest.json is empty or invalid');
-    FILES = files;
-  } catch (e) {
-    grid.innerHTML = `<p class="error-msg">Could not load data/manifest.json.<br>${escHtml(e.message)}</p>`;
-    return;
-  }
+function loadManifest() {
   const p = new URLSearchParams(location.search);
   const f = p.get('file');
   if (f && FILES.includes(f)) {
@@ -858,7 +850,7 @@ async function loadManifest() {
   } else {
     renderHome();
   }
-  // Preload sitewide search index in background, now that FILES is known
+  // Preload sitewide search index in background
   preloadSwIndex();
 }
 
@@ -888,12 +880,6 @@ window.toggleDark = function() {
   savePrefs();
 };
 
-// Font size is applied on <html> (the root element) rather than <body>,
-// because every other size in this stylesheet is expressed in `rem`, which
-// is always relative to the ROOT element's font-size — not the body's.
-// Setting it on body alone (the old approach) had no visible effect on any
-// rem-sized text. This also lets us show a real, accurate zoom percentage
-// and disable the +/− buttons at the boundaries.
 function applyFontSize() {
   const step = FONT_STEPS[fzIdx];
   document.documentElement.setAttribute('data-fz', step);
@@ -947,7 +933,6 @@ function onScroll() {
 // KEYBOARD
 // ──────────────────────────────────────────────
 function onKey(e) {
-  // Ctrl+K / Cmd+K → sitewide search
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openSitewideSearch(); return; }
   const tag = document.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -999,7 +984,6 @@ async function openFile(fileName) {
     if (!resp.ok) throw new Error('File not found: ' + fileName);
     const data = await resp.json();
     currentData = data;
-    // Also add to sitewide index
     swIndex[fileName] = data;
     swIndexLoaded.add(fileName);
 
@@ -1032,7 +1016,6 @@ function renderFile(data, name) {
     });
   });
 
-  // Word count / reading time estimate
   let wordCount = 0;
   sections.forEach(s => (s.verses || []).forEach(v => {
     if (v.original_text) wordCount += v.original_text.split(/\s+/).length;
@@ -1042,7 +1025,6 @@ function renderFile(data, name) {
 
   let html = '';
 
-  // Stats
   html += `<div id="stats-bar">
     <div class="stat"><div class="stat-n">${sections.length}</div><div class="stat-l">Sections</div></div>
     <div class="stat"><div class="stat-n">${totalVerses}</div><div class="stat-l">Verses</div></div>
@@ -1054,7 +1036,6 @@ function renderFile(data, name) {
     <span>~${readMins} min read</span>
   </div>`;
 
-  // Attribution strip — author & category from metadata
   const meta = data.metadata || {};
   const attrParts = [];
   if (meta.author)   attrParts.push({ icon: '✦', label: 'Author',   value: meta.author });
@@ -1073,7 +1054,6 @@ function renderFile(data, name) {
     `</div>`;
   }
 
-  // Metadata
   if (data.metadata && Object.keys(data.metadata).length) {
     html += `<details class="meta-block">
       <summary>Metadata</summary>
@@ -1084,12 +1064,10 @@ function renderFile(data, name) {
     html += `</tbody></table></details>`;
   }
 
-  // Content title
   if (data.content && data.content.title) {
     html += `<h2 style="font-family:var(--font-reading);font-size:1.5rem;font-weight:700;margin-bottom:1rem;color:var(--text);">${escHtml(data.content.title)}</h2>`;
   }
 
-  // Sections
   sections.forEach((sec, si) => {
     const secId = 'sec-' + si;
     html += `<div class="section-block" id="${secId}" data-secidx="${si}">
@@ -1157,13 +1135,11 @@ function renderFile(data, name) {
 }
 
 // ──────────────────────────────────────────────
-// TOC (sidebar) — each section is a dropdown that, when expanded,
-// lists every verse as "verse no. + first 25 characters…"
+// TOC
 // ──────────────────────────────────────────────
 function verseSnippet(verse) {
   const raw = (verse.original_text || verse.translation || '').replace(/\s+/g, ' ').trim();
-  const slice = raw.slice(0, 25);
-  return slice + '...';
+  return raw.slice(0, 25) + '...';
 }
 
 function buildToc(sections) {
@@ -1214,7 +1190,6 @@ window.jumpToVerse = function(secIdx, verseIdx) {
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.remove('verse-flash');
-    // restart animation even if it was already flashed once
     void el.offsetWidth;
     el.classList.add('verse-flash');
     setTimeout(() => el.classList.remove('verse-flash'), 1200);
@@ -1338,7 +1313,6 @@ function updateSearchCount() {
 // SITEWIDE SEARCH
 // ──────────────────────────────────────────────
 async function preloadSwIndex() {
-  // Load all files in background (staggered)
   for (let i = 0; i < FILES.length; i++) {
     const f = FILES[i];
     if (swIndexLoaded.has(f)) continue;
@@ -1441,11 +1415,9 @@ window.swGoToResult = function(idx) {
   closeSitewideSearch(null);
   const params = new URLSearchParams({ file: r.file });
   if (currentFile === r.file) {
-    // Already on this file, just scroll
     const el = document.getElementById('sec-' + r.secIdx);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else {
-    // Navigate
     history.pushState({}, '', '?' + params.toString());
     openFile(r.file).then(() => {
       setTimeout(() => {
@@ -1491,18 +1463,17 @@ function escAttr(s) { return escHtml(s).replace(/\n/g,'&#10;'); }
 function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 // Mobile swipe sidebar
-let touchStartX=0;
-document.addEventListener("touchstart",e=>{touchStartX=e.touches[0].clientX;});
-document.addEventListener("touchend",e=>{
- const endX=e.changedTouches[0].clientX;
- if(window.innerWidth>680) return;
- if(touchStartX<25 && endX>100){
-   sidebar.classList.add("mobile-open");
-   sidebarOverlay.classList.add("visible");
- }
- if(touchStartX>100 && endX<20){ closeSidebar(); }
+let touchStartX = 0;
+document.addEventListener("touchstart", e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener("touchend", e => {
+  const endX = e.changedTouches[0].clientX;
+  if (window.innerWidth > 680) return;
+  if (touchStartX < 25 && endX > 100) {
+    sidebar.classList.add("mobile-open");
+    sidebarOverlay.classList.add("visible");
+  }
+  if (touchStartX > 100 && endX < 20) { closeSidebar(); }
 });
-
 </script>
 </body>
 </html>
