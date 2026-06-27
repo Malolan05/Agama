@@ -154,6 +154,17 @@
       background: var(--sand-1); border: 1px solid var(--sand-2);
       border-radius: 4px; padding: 0.15rem 0.5rem;
     }
+    /* Vitals grid on homepage card */
+    .tc-meta-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 0.75rem; margin-top: 0.6rem;
+    }
+    .tc-vital { display: flex; flex-direction: column; gap: 0.05rem; }
+    .tc-vk {
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .tc-vv { font-size: 0.82rem; color: var(--ink-1); font-weight: 500; }
 
     /* ── SEARCH RESULTS OVERLAY ── */
     #search-results-view { display: none; }
@@ -526,8 +537,9 @@
   // Populated at runtime by fetching data/manifest.json.
   // manifest.json is a simple JSON array of filenames, e.g. ["foo.json","bar.json"].
   // To add a new text: drop its JSON into /data/ and add its filename to manifest.json.
-  const DATA_DIR = 'data/';
-  const MANIFEST = DATA_DIR + 'manifest.json';
+  const BASE_URL  = 'https://malolan05.github.io/agama/';
+  const DATA_DIR  = 'data/';
+  const MANIFEST  = DATA_DIR + 'manifest.json';
   let REGISTRY = [];  // { slug, label, file }[] — filled by loadManifest()
 
   /* ─── DOM refs ─── */
@@ -584,8 +596,9 @@
 
   /* ─── INIT ─── */
   wireGlobalKeys();
-  brandLink.addEventListener('click', e => { e.preventDefault(); goHome(); });
-  readerBack.addEventListener('click', e => { e.preventDefault(); goHome(); });
+  brandLink.addEventListener('click', e => { e.preventDefault(); history.pushState(null,'',BASE_URL); goHome(); });
+  readerBack.addEventListener('click',  e => { e.preventDefault(); history.pushState(null,'',BASE_URL); goHome(); });
+  window.addEventListener('popstate', () => routeFromURL());
   loadManifest();
 
   /* ─── MANIFEST LOADER ─── */
@@ -603,17 +616,37 @@
       }));
       hideOverlay();
       buildHomepage();
+      routeFromURL();   // honour a direct /agama/<slug> URL on first load
     } catch (e) {
       showOverlay('Could not load data/manifest.json — ' + e.message, true);
+    }
+  }
+
+  /* ─── URL ROUTING ─── */
+  function slugFromURL() {
+    // Matches  /agama/<slug>  or  /agama/<slug>/  anywhere in the path
+    const m = window.location.pathname.match(/\/agama\/([^/?#]+)/);
+    return m ? m[1] : null;
+  }
+
+  async function routeFromURL() {
+    const slug = slugFromURL();
+    if (slug && REGISTRY.find(r => r.slug === slug)) {
+      await openText(slug);
+    } else {
+      setView('home');
     }
   }
 
   /* ─── HOMEPAGE ─── */
   function buildHomepage() {
     textGrid.innerHTML = '';
+    // Eagerly fetch metadata for all texts so cards populate immediately
+    REGISTRY.forEach(reg => { if (!loadedTexts[reg.slug]) loadTextMeta(reg.slug); });
     REGISTRY.forEach(reg => {
-      const card = document.createElement('div');
+      const card = document.createElement('a');
       card.className = 'text-card';
+      card.href = BASE_URL + reg.slug;
       card.innerHTML = `
         <div class="tc-top">
           <div class="tc-icon">📜</div>
@@ -622,11 +655,15 @@
             <div class="tc-author" id="tc-author-${reg.slug}">—</div>
           </div>
         </div>
-        <div class="tc-desc" id="tc-desc-${reg.slug}">Click to explore</div>
+        <div class="tc-desc" id="tc-desc-${reg.slug}">—</div>
+        <div class="tc-meta-grid" id="tc-meta-${reg.slug}"></div>
         <div class="tc-stats" id="tc-stats-${reg.slug}"></div>`;
-      card.addEventListener('click', () => openText(reg.slug));
+      card.addEventListener('click', e => {
+        e.preventDefault();
+        history.pushState(null, '', BASE_URL + reg.slug);
+        openText(reg.slug);
+      });
       textGrid.appendChild(card);
-      // Lazy populate meta from cache or after load
       if (loadedTexts[reg.slug]) populateCard(reg.slug);
     });
     setView('home');
@@ -636,18 +673,37 @@
     const d = loadedTexts[slug];
     if (!d) return;
     const m = d.metadata;
-    const nEl = document.getElementById('tc-name-' + slug);
-    const aEl = document.getElementById('tc-author-' + slug);
-    const dEl = document.getElementById('tc-desc-' + slug);
-    const sEl = document.getElementById('tc-stats-' + slug);
-    if (nEl && m.scripture_name) nEl.textContent = m.scripture_name;
-    if (aEl) aEl.textContent = m.author || '—';
-    if (dEl) dEl.textContent = m.description || '';
-    if (sEl) sEl.innerHTML = [
-      m.year_of_composition ? '<span class="tc-stat">' + esc(m.year_of_composition) + '</span>' : '',
-      m.total_chapters       ? '<span class="tc-stat">' + m.total_chapters + ' chapters</span>' : '',
-      m.total_verses         ? '<span class="tc-stat">' + m.total_verses + ' verses</span>' : '',
-    ].join('');
+    const nEl  = document.getElementById('tc-name-'  + slug);
+    const aEl  = document.getElementById('tc-author-'+ slug);
+    const dEl  = document.getElementById('tc-desc-'  + slug);
+    const mgEl = document.getElementById('tc-meta-'  + slug);
+    const sEl  = document.getElementById('tc-stats-' + slug);
+    if (nEl  && m.scripture_name)    nEl.textContent  = m.scripture_name;
+    if (aEl)  aEl.textContent  = m.author || '—';
+    if (dEl)  dEl.textContent  = m.description || '';
+    // Vital metadata grid
+    if (mgEl) {
+      const vitals = [
+        ['Category',  m.category],
+        ['Language',  m.language],
+        ['Composed',  m.year_of_composition],
+        ['Chapters',  m.total_chapters],
+        ['Verses',    m.total_verses],
+      ].filter(([,v]) => v);
+      mgEl.innerHTML = vitals.map(([k,v]) =>
+        '<div class="tc-vital"><span class="tc-vk">' + esc(k) + '</span><span class="tc-vv">' + esc(String(v)) + '</span></div>'
+      ).join('');
+    }
+    if (sEl) sEl.innerHTML = '';  // stats row now redundant — cleared
+  }
+
+  // Lightweight fetch of just the JSON to populate a homepage card
+  // (same as loadText but doesn't render the reader)
+  async function loadTextMeta(slug) {
+    try {
+      const data = await loadText(slug);
+      populateCard(slug);
+    } catch(_) {}
   }
 
   function goHome() {
@@ -686,7 +742,7 @@
       clearFileSearch();
       setView('reader');
     } catch(e) {
-      showOverlay(`Failed to load: ${e.message}`, true);
+      showOverlay('Failed to load: ' + e.message, true);
     }
   }
 
@@ -1078,6 +1134,7 @@
       card.addEventListener('click', async () => {
         siteSearch.value = '';
         siteSearchClear.classList.remove('visible');
+        history.pushState(null, '', BASE_URL + r.slug);
         await openText(r.slug);
         // After rendering, scroll to verse
         setTimeout(() => {
