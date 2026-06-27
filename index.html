@@ -2,1046 +2,1117 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Malolan • text explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Malolan · Sacred Texts</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    /* ── TOKENS ── */
     :root {
-      --gold-50:  #fffbeb;
-      --gold-100: #fef3c7;
-      --gold-200: #fde68a;
-      --gold-300: #fcd34d;
-      --gold-400: #fbbf24;
-      --gold-500: #f59e0b;
-      --gold-600: #d97706;
-      --gold-700: #b45309;
-      --gold-800: #92400e;
-      --gold-900: #78350f;
-      --parchment:      #fdf6e3;
-      --parchment-dark: #f5e6c8;
-      --ink:       #1a0800;
-      --ink-muted: #4a2f00;
-      --ink-faint: #7c5c2e;
-      --divider:   rgba(180,83,9,0.18);
-      --sidebar-width: 240px;
+      --sand-0:   #fdfaf3;
+      --sand-1:   #f7f1e0;
+      --sand-2:   #ede3c8;
+      --sand-3:   #d9c89a;
+      --amber-4:  #c49a3c;
+      --amber-5:  #a67c20;
+      --amber-6:  #7a5c10;
+      --ink-0:    #1c1308;
+      --ink-1:    #3d2b0f;
+      --ink-2:    #6b4f23;
+      --ink-3:    #9c7a48;
+      --ruby:     #8b1a1a;
+      --teal:     #1a5c5c;
+      --divider:  rgba(196,154,60,0.18);
+      --sidebar-w: 260px;
+      --card-r:   10px;
+      --focus:    0 0 0 3px rgba(196,154,60,0.35);
+      --trans:    150ms ease;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
     body {
-      background: var(--parchment);
-      color: var(--ink);
-      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--sand-0);
+      color: var(--ink-0);
+      font-family: 'Noto Sans', system-ui, sans-serif;
       min-height: 100vh;
       background-image:
-        radial-gradient(ellipse at 20% 10%, rgba(251,191,36,0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 90%, rgba(180,83,9,0.06) 0%, transparent 50%);
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(196,154,60,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(122,92,16,0.05) 0%, transparent 60%);
     }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--sand-3); border-radius: 4px; }
+    * { scrollbar-width: thin; scrollbar-color: var(--sand-3) transparent; }
 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--gold-400); border-radius: 4px; }
-    * { scrollbar-width: thin; scrollbar-color: var(--gold-400) transparent; }
-
-    /* ---- NAV ---- */
+    /* ── NAV ── */
     nav {
-      position: sticky; top: 0; z-index: 40;
-      background: rgba(253,246,227,0.92);
-      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(253,250,243,0.93);
+      backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--divider);
       padding: 0 1.5rem;
     }
     .nav-inner {
-      max-width: 100%; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 60px; gap: 1rem;
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 1rem;
+      height: 58px;
     }
     .nav-brand {
       font-family: 'Noto Serif', serif;
-      font-size: 1.35rem; font-weight: 600;
-      color: var(--gold-800); text-decoration: none;
-      display: flex; align-items: center; gap: 0.5rem;
-      letter-spacing: 0.01em; transition: color 0.15s; flex-shrink: 0;
+      font-size: 1.25rem; font-weight: 600; color: var(--amber-6);
+      text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+      flex-shrink: 0; letter-spacing: 0.02em; transition: color var(--trans);
     }
-    .nav-brand:hover { color: var(--gold-600); }
-    #nav-file-name {
-      display: none;
-      background: var(--gold-100); border: 1px solid var(--gold-300);
-      color: var(--gold-800); font-size: 0.75rem; font-weight: 500;
-      padding: 0.25rem 0.8rem; border-radius: 99px;
-      max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    .nav-brand:hover { color: var(--amber-5); }
+    .nav-brand span { font-size: 1.1rem; }
+
+    /* Sitewide search */
+    .site-search-wrap {
+      flex: 1; max-width: 480px; position: relative; display: flex; align-items: center;
     }
-    /* nav search (shown in reader mode) */
-    .nav-search-wrap {
-      display: none; position: relative; flex: 1; max-width: 380px;
+    .site-search-icon {
+      position: absolute; left: 0.75rem; color: var(--amber-5); pointer-events: none;
+      display: flex; align-items: center;
     }
-    .nav-search-wrap.active { display: flex; align-items: center; }
-    #global-search {
-      width: 100%; padding: 0.45rem 4.5rem 0.45rem 2.1rem;
-      background: white; border: 1px solid var(--gold-300);
-      border-radius: 99px; font-size: 0.84rem; color: var(--ink);
-      font-family: 'Inter', sans-serif; outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+    #site-search {
+      width: 100%; padding: 0.42rem 2.5rem 0.42rem 2.1rem;
+      background: white; border: 1px solid var(--sand-2);
+      border-radius: 99px; font-size: 0.84rem; color: var(--ink-0);
+      font-family: 'Noto Sans', sans-serif; outline: none;
+      transition: border-color var(--trans), box-shadow var(--trans);
     }
-    #global-search:focus { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
-    #global-search::placeholder { color: var(--ink-faint); }
-    .nav-search-icon {
-      position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
-      color: var(--gold-600); font-size: 0.85rem; pointer-events: none;
+    #site-search:focus { border-color: var(--amber-4); box-shadow: var(--focus); }
+    #site-search::placeholder { color: var(--ink-3); }
+    #site-search-clear {
+      position: absolute; right: 0.55rem; background: none; border: none;
+      cursor: pointer; color: var(--ink-3); display: none; align-items: center;
+      padding: 4px; border-radius: 50%; transition: background var(--trans);
     }
-    #global-search-count {
-      position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-      font-size: 0.68rem; color: var(--ink-faint); white-space: nowrap;
+    #site-search-clear:hover { background: var(--sand-1); color: var(--ink-1); }
+    #site-search-clear.visible { display: flex; }
+
+    .nav-meta { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; }
+    #nav-pill {
+      display: none; background: var(--sand-1); border: 1px solid var(--sand-2);
+      border-radius: 99px; padding: 0.22rem 0.75rem;
+      font-size: 0.72rem; font-weight: 500; color: var(--ink-2);
+      max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
-    /* ---- HOMEPAGE ---- */
-    #homepage-view { display: none; }
+    /* ── HOMEPAGE ── */
+    #home-view { display: none; }
     .home-hero {
-      max-width: 700px; margin: 0 auto;
-      padding: 4rem 1.5rem 2rem; text-align: center;
+      max-width: 680px; margin: 0 auto;
+      padding: 4rem 1.5rem 2.5rem; text-align: center;
     }
     .home-hero h1 {
       font-family: 'Noto Serif', serif;
-      font-size: clamp(1.8rem, 4vw, 2.6rem);
-      font-weight: 600; color: var(--gold-900); line-height: 1.25;
+      font-size: clamp(1.9rem, 4vw, 2.7rem); font-weight: 600;
+      color: var(--ink-0); line-height: 1.2;
     }
-    .home-hero h1 em { font-style: italic; color: var(--gold-700); }
-    .home-hero p { margin-top: 0.75rem; color: var(--ink-muted); font-size: 1rem; line-height: 1.65; }
-    .gold-rule {
-      width: 56px; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
-      margin: 1.25rem auto;
+    .home-hero h1 em { font-style: italic; color: var(--amber-5); }
+    .home-hero p { margin-top: 0.75rem; color: var(--ink-2); line-height: 1.7; }
+    .divider-rule {
+      width: 48px; height: 2px; margin: 1.5rem auto;
+      background: linear-gradient(90deg, transparent, var(--amber-4), transparent);
     }
-    .file-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
-      gap: 1rem; max-width: 900px; margin: 0 auto 4rem; padding: 0 1.5rem; list-style: none;
+    .text-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      gap: 1rem; max-width: 960px; margin: 0 auto 5rem; padding: 0 1.5rem;
     }
-    .file-card {
-      background: white; border: 1px solid var(--gold-200); border-radius: 12px; padding: 1.4rem;
-      text-decoration: none; color: var(--ink);
-      display: flex; align-items: flex-start; gap: 1rem;
-      transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+    .text-card {
+      background: white; border: 1px solid var(--sand-2); border-radius: var(--card-r);
+      padding: 1.4rem 1.5rem; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 0.6rem;
+      transition: border-color var(--trans), box-shadow var(--trans), transform var(--trans);
+      cursor: pointer;
     }
-    .file-card:hover { border-color: var(--gold-400); box-shadow: 0 4px 20px rgba(180,83,9,0.12); transform: translateY(-2px); }
-    .file-icon {
-      font-size: 1.4rem; flex-shrink: 0; width: 44px; height: 44px;
-      background: var(--gold-50); border: 1px solid var(--gold-200);
+    .text-card:hover {
+      border-color: var(--amber-4);
+      box-shadow: 0 4px 24px rgba(122,92,16,0.1);
+      transform: translateY(-2px);
+    }
+    .tc-top { display: flex; align-items: flex-start; gap: 0.85rem; }
+    .tc-icon {
+      width: 42px; height: 42px; flex-shrink: 0;
+      background: var(--sand-1); border: 1px solid var(--sand-2);
       border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
     }
-    .file-info { min-width: 0; flex: 1; }
-    .file-name {
-      font-family: 'Noto Serif', serif; font-size: 0.95rem; font-weight: 600;
-      color: var(--gold-900); margin-bottom: 0.15rem;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .tc-name {
+      font-family: 'Noto Serif', serif; font-size: 1rem; font-weight: 600;
+      color: var(--ink-0); line-height: 1.3;
     }
-    .file-cta { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold-600); }
-
-    /* ---- READER/TABLE VIEW SHELL ---- */
-    #reader-view { display: none; }
-
-    .back-btn {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      font-size: 0.8rem; font-weight: 500; color: var(--gold-700);
-      text-decoration: none; border: 1px solid var(--gold-300);
-      border-radius: 99px; padding: 0.35rem 0.8rem; background: white;
-      transition: all 0.15s; margin: 0.75rem 0 0 1.25rem;
+    .tc-author { font-size: 0.76rem; color: var(--ink-3); margin-top: 0.1rem; }
+    .tc-desc { font-size: 0.82rem; color: var(--ink-2); line-height: 1.6; }
+    .tc-stats {
+      display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.25rem;
     }
-    .back-btn:hover { border-color: var(--gold-500); background: var(--gold-50); }
+    .tc-stat {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--amber-5);
+      background: var(--sand-1); border: 1px solid var(--sand-2);
+      border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
 
-    /* View-mode toggle bar */
-    .view-mode-bar {
+    /* ── SEARCH RESULTS OVERLAY ── */
+    #search-results-view { display: none; }
+    .sr-header {
+      max-width: 900px; margin: 1.5rem auto 0; padding: 0 1.5rem;
+    }
+    .sr-header h2 { font-size: 0.95rem; color: var(--ink-2); }
+    .sr-header h2 strong { color: var(--ink-0); font-family: 'Noto Serif', serif; }
+    #sr-list {
+      max-width: 900px; margin: 1rem auto 4rem; padding: 0 1.5rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .sr-card {
+      background: white; border: 1px solid var(--sand-2); border-radius: var(--card-r);
+      padding: 1rem 1.2rem; cursor: pointer;
+      transition: border-color var(--trans), box-shadow var(--trans);
+    }
+    .sr-card:hover { border-color: var(--amber-4); box-shadow: 0 2px 12px rgba(122,92,16,0.08); }
+    .sr-card-top {
       display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.25rem 0;
+      margin-bottom: 0.4rem; flex-wrap: wrap;
     }
-    .view-btn {
-      padding: 0.35rem 0.9rem; border-radius: 99px;
-      font-size: 0.78rem; font-weight: 500; font-family: 'Inter', sans-serif;
-      border: 1px solid var(--gold-300); background: transparent; color: var(--ink-muted);
-      cursor: pointer; transition: all 0.15s;
-    }
-    .view-btn.active { background: var(--gold-600); color: white; border-color: var(--gold-600); }
-    .view-btn:not(.active):hover { background: var(--gold-50); color: var(--gold-800); }
+    .sr-source { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--amber-5); }
+    .sr-dot { color: var(--sand-3); font-size: 0.6rem; }
+    .sr-loc { font-size: 0.72rem; color: var(--ink-3); font-family: 'Noto Sans Mono', monospace; }
+    .sr-snippet { font-size: 0.87rem; color: var(--ink-1); line-height: 1.65; }
+    .sr-snippet mark { background: rgba(196,154,60,0.28); border-radius: 2px; padding: 0 1px; font-style: normal; }
+    .sr-empty { text-align: center; padding: 3rem 1rem; color: var(--ink-3); font-size: 0.9rem; }
 
-    /* Layout: sidebar + content */
+    /* ── READER SHELL ── */
+    #reader-view { display: none; }
+    .reader-back {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; font-weight: 500; color: var(--amber-5);
+      text-decoration: none; border: 1px solid var(--sand-2);
+      border-radius: 99px; padding: 0.32rem 0.75rem; background: white;
+      margin: 0.75rem 0 0 1.25rem; transition: all var(--trans);
+    }
+    .reader-back:hover { border-color: var(--amber-4); background: var(--sand-0); }
+
     .reader-layout {
       display: grid;
-      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-      min-height: calc(100vh - 120px);
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: calc(100vh - 110px);
     }
-    /* In table mode, collapse sidebar */
-    #reader-view.table-mode .reader-layout { grid-template-columns: 1fr; }
-    #reader-view.table-mode .sidebar { display: none; }
 
-    /* Sidebar */
+    /* ── SIDEBAR ── */
     .sidebar {
       border-right: 1px solid var(--divider);
-      background: rgba(255,255,255,0.45);
-      padding: 1.25rem 0;
-      position: sticky; top: 60px;
-      height: calc(100vh - 60px);
+      background: rgba(253,250,243,0.6);
+      padding: 0.75rem 0 2rem;
+      position: sticky; top: 58px;
+      height: calc(100vh - 58px);
       overflow-y: auto;
     }
-    .sidebar-title {
-      font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--ink-faint); font-weight: 700; padding: 0 1rem 0.6rem;
+    .sb-label {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--ink-3);
+      padding: 0 1rem 0.5rem; display: block;
     }
-    .sidebar-group { margin-bottom: 0.2rem; }
-    .sidebar-group-btn {
+    /* File-level search in sidebar */
+    .sb-search-wrap {
+      padding: 0 0.75rem 0.75rem; position: relative;
+    }
+    .sb-search-icon {
+      position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%);
+      color: var(--amber-5); pointer-events: none; display: flex; align-items: center;
+    }
+    #file-search {
+      width: 100%; padding: 0.38rem 0.75rem 0.38rem 2rem;
+      background: white; border: 1px solid var(--sand-2); border-radius: 99px;
+      font-size: 0.78rem; color: var(--ink-0); font-family: 'Noto Sans', sans-serif;
+      outline: none; transition: border-color var(--trans), box-shadow var(--trans);
+    }
+    #file-search:focus { border-color: var(--amber-4); box-shadow: var(--focus); }
+    #file-search::placeholder { color: var(--ink-3); }
+    #file-search-count {
+      text-align: center; font-size: 0.68rem; color: var(--ink-3);
+      padding: 0.15rem 0 0.4rem; display: none;
+    }
+    #file-search-nav {
+      display: none; justify-content: center; gap: 0.35rem; padding-bottom: 0.5rem;
+    }
+    #file-search-nav.visible { display: flex; }
+    .fsnav-btn {
+      background: white; border: 1px solid var(--sand-2); border-radius: 4px;
+      padding: 2px 8px; font-size: 0.72rem; color: var(--amber-5);
+      cursor: pointer; transition: all var(--trans);
+    }
+    .fsnav-btn:hover { border-color: var(--amber-4); }
+
+    .sb-group { margin-bottom: 0.1rem; }
+    .sb-group-btn {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600;
-      color: var(--gold-800); cursor: pointer;
-      font-family: 'Noto Serif', serif;
-      transition: background 0.1s;
+      padding: 0.42rem 1rem; font-size: 0.81rem; font-weight: 600;
+      font-family: 'Noto Serif', serif; color: var(--ink-1);
+      cursor: pointer; transition: background var(--trans);
+      border-left: 3px solid transparent;
     }
-    .sidebar-group-btn:hover { background: var(--gold-50); }
-    .sidebar-group-btn.active { background: var(--gold-100); color: var(--gold-900); }
-    .sidebar-chevron { font-size: 0.6rem; transition: transform 0.2s; color: var(--gold-500); }
-    .sidebar-items { display: none; padding: 0 0 0 0.75rem; }
-    .sidebar-items.open { display: block; }
-    .sidebar-item {
-      padding: 0.3rem 0.75rem; font-size: 0.78rem; color: var(--ink-muted);
-      cursor: pointer; border-radius: 4px; border-left: 2px solid transparent;
-      transition: background 0.1s, color 0.1s;
+    .sb-group-btn:hover { background: var(--sand-1); }
+    .sb-group-btn.open { border-left-color: var(--amber-4); background: var(--sand-1); }
+    .sb-chevron { font-size: 0.55rem; color: var(--amber-4); transition: transform 0.2s; flex-shrink: 0; }
+    .sb-items { display: none; }
+    .sb-items.open { display: block; }
+    .sb-item {
+      padding: 0.27rem 1rem 0.27rem 1.6rem;
+      font-size: 0.76rem; color: var(--ink-2); cursor: pointer;
+      border-left: 3px solid transparent; transition: all var(--trans);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .sidebar-item:hover { background: var(--gold-50); color: var(--gold-800); }
-    .sidebar-item.active { background: var(--gold-50); color: var(--gold-800); border-left-color: var(--gold-500); }
+    .sb-item:hover { background: var(--sand-0); color: var(--ink-0); }
+    .sb-item.active { border-left-color: var(--amber-5); color: var(--amber-6); background: var(--sand-0); }
 
-    /* Reader content pane */
+    /* ── READER CONTENT ── */
     .reader-content {
-      padding: 1.5rem 2rem;
+      padding: 1.75rem 2.5rem;
       overflow-y: auto;
-      height: calc(100vh - 120px);
-      background: white;
-    }
-    #reader-view.table-mode .reader-content {
-      padding: 1rem 1.5rem;
-      height: auto;
-      background: transparent;
+      height: calc(100vh - 110px);
     }
 
-    /* Row cards */
-    .row-card {
-      background: white; border: 1px solid var(--gold-200);
-      border-radius: 10px; margin-bottom: 1.25rem; overflow: hidden;
+    /* Text metadata strip */
+    .text-meta-strip {
+      background: white; border: 1px solid var(--sand-2); border-radius: var(--card-r);
+      padding: 1rem 1.25rem; margin-bottom: 1.75rem;
+      display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem;
     }
-    .row-card.highlighted { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
-    .row-card-header {
-      background: var(--gold-50); border-bottom: 1px solid var(--gold-100);
-      padding: 0.55rem 1rem;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 0.4rem;
-    }
-    .row-card-ref {
-      font-size: 0.7rem; font-family: 'Inter', monospace;
-      color: var(--gold-700); font-weight: 600; letter-spacing: 0.06em;
-    }
-    .row-card-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-    .row-card-tag {
-      font-size: 0.63rem; padding: 0.1rem 0.4rem; border-radius: 3px;
-      background: white; border: 1px solid var(--gold-200); color: var(--ink-muted);
-    }
-    .row-card-tag strong { font-weight: 600; color: var(--gold-700); margin-right: 0.2rem; }
-    .row-card-body { padding: 0.85rem 1rem; }
-    .row-card-primary {
-      font-family: 'Noto Serif', serif;
-      font-size: 1rem; line-height: 1.85; color: var(--ink); margin-bottom: 0.6rem;
-    }
-    .row-card-field {
-      font-size: 0.82rem; color: var(--ink-muted); line-height: 1.65;
-      padding: 0.5rem 0.7rem; margin-top: 0.5rem;
-      background: var(--gold-50); border-radius: 6px;
-      border-left: 3px solid var(--gold-300);
-    }
-    .row-card-field-label {
-      font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--gold-600); font-weight: 700; margin-bottom: 0.2rem;
-      font-family: 'Inter', sans-serif;
-    }
+    .meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
+    .meta-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--ink-3); }
+    .meta-value { font-size: 0.84rem; color: var(--ink-1); }
 
-    /* Section heading in reader */
+    /* Section */
+    .section-block { margin-bottom: 2.75rem; scroll-margin-top: 70px; }
     .section-heading {
-      display: flex; align-items: center; gap: 0.75rem;
-      margin-bottom: 1.25rem; padding-bottom: 0.6rem;
-      border-bottom: 1px solid var(--divider);
+      display: flex; align-items: baseline; gap: 0.75rem;
+      padding-bottom: 0.6rem; border-bottom: 1px solid var(--divider);
+      margin-bottom: 1.25rem;
     }
     .section-heading h2 {
-      font-family: 'Noto Serif', serif;
-      font-size: 1.1rem; font-weight: 600; color: var(--gold-900);
+      font-family: 'Noto Serif', serif; font-size: 1.05rem; font-weight: 600;
+      color: var(--ink-0);
     }
     .section-badge {
-      font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
-      background: var(--gold-100); color: var(--gold-800);
-      border: 1px solid var(--gold-200); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
-    }
-    .group-block { margin-bottom: 2.5rem; }
-    .group-label {
-      font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--ink-faint); font-weight: 700; margin-bottom: 0.85rem;
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--amber-6);
+      background: var(--sand-1); border: 1px solid var(--sand-2);
+      border-radius: 4px; padding: 0.12rem 0.45rem;
     }
 
-    /* Search highlight in reader */
-    mark.hl {
-      background: var(--gold-200); color: var(--ink);
-      border-radius: 3px; padding: 0 2px; font-weight: 600;
+    /* Verse card */
+    .verse-card {
+      background: white; border: 1px solid var(--sand-2); border-radius: var(--card-r);
+      margin-bottom: 1rem; overflow: hidden;
+      transition: border-color var(--trans);
+      scroll-margin-top: 70px;
     }
-    @keyframes pulse-gold {
-      0%   { box-shadow: 0 0 0 0   rgba(251,191,36,0.5); }
-      100% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+    .verse-card.hl { border-color: var(--amber-4); box-shadow: 0 0 0 3px rgba(196,154,60,0.15); }
+    @keyframes flash-amber {
+      0%   { box-shadow: 0 0 0 0   rgba(196,154,60,0.5); }
+      100% { box-shadow: 0 0 0 10px rgba(196,154,60,0); }
     }
-    .search-flash { animation: pulse-gold 0.6s ease-out; }
+    .verse-card.flash { animation: flash-amber 0.55s ease-out; }
 
-    /* ---- TABLE MODE WITHIN READER VIEW ---- */
-    #table-fallback { display: none; }
-    .table-toolbar {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
-      padding: 0.75rem 0 0.75rem;
+    .verse-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 1rem; background: var(--sand-1);
+      border-bottom: 1px solid var(--sand-2);
+      cursor: default;
     }
-    .search-wrap { position: relative; flex: 1; min-width: 230px; max-width: 380px; }
-    .search-icon-left {
-      position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
-      color: var(--gold-600); pointer-events: none; font-size: 0.85rem;
+    .verse-num {
+      font-family: 'Noto Sans Mono', monospace; font-size: 0.7rem;
+      font-weight: 500; color: var(--amber-5); flex-shrink: 0;
     }
-    #table-search-input {
-      width: 100%; padding: 0.45rem 6.5rem 0.45rem 2.1rem;
-      background: white; border: 1px solid var(--gold-300);
-      border-radius: 99px; font-size: 0.84rem; color: var(--ink);
-      font-family: 'Inter', sans-serif; outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+    .verse-original {
+      padding: 0.85rem 1.1rem;
+      font-family: 'Noto Serif', serif; font-size: 1rem;
+      line-height: 1.95; color: var(--ink-0);
+      white-space: pre-wrap; word-break: break-word;
     }
-    #table-search-input:focus { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(251,191,36,0.2); }
-    #table-search-input::placeholder { color: var(--ink-faint); }
-    #table-search-controls {
-      display: none; position: absolute; inset-y: 4px; right: 4px;
-      align-items: center; gap: 1px; background: white; border-radius: 99px; padding: 0 4px;
-    }
-    #table-search-controls.visible { display: flex; }
-    #table-search-count { font-size: 0.68rem; font-family: monospace; color: var(--ink-faint); padding: 0 0.35rem; white-space: nowrap; }
-    #table-search-count.no-results { color: #dc2626; }
-    .snav-btn {
-      padding: 4px; border-radius: 50%; background: none; border: none; cursor: pointer;
-      color: var(--gold-700); display: flex; align-items: center; justify-content: center; transition: background 0.1s;
-    }
-    .snav-btn:hover { background: var(--gold-100); }
-    .sclear-btn {
-      padding: 4px; border-radius: 50%; background: none; border: none; cursor: pointer;
-      color: var(--ink-faint); display: flex; align-items: center; justify-content: center; transition: background 0.1s, color 0.1s;
-    }
-    .sclear-btn:hover { background: #fee2e2; color: #dc2626; }
 
-    /* Column dropdown */
-    #col-dropdown { position: relative; flex-shrink: 0; }
-    #col-dropdown-btn {
-      display: inline-flex; align-items: center; gap: 0.45rem;
-      font-size: 0.78rem; font-weight: 600; font-family: 'Inter', sans-serif;
-      color: var(--gold-800); background: white; border: 1px solid var(--gold-300);
-      border-radius: 99px; padding: 0.42rem 0.85rem; cursor: pointer; transition: all 0.15s;
+    /* IAST / translation toggles */
+    .verse-extras { border-top: 1px solid var(--sand-1); }
+    .extra-row {
+      border-top: 1px solid var(--sand-1);
     }
-    #col-dropdown-btn:hover { border-color: var(--gold-500); background: var(--gold-50); }
-    #col-panel-wrap {
-      display: none; position: absolute; right: 0; top: calc(100% + 8px);
-      width: 270px; background: white; border: 1px solid var(--gold-200);
-      border-radius: 12px; box-shadow: 0 8px 32px rgba(180,83,9,0.12); z-index: 20; padding: 0.85rem;
-    }
-    #col-panel-wrap.open { display: block; }
-    .col-dh {
+    .extra-row:first-child { border-top: none; }
+    .extra-toggle {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 0.55rem; padding-bottom: 0.45rem; border-bottom: 1px solid var(--gold-100);
+      padding: 0.45rem 1rem; cursor: pointer;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--amber-6);
+      user-select: none; transition: background var(--trans);
     }
-    .col-dh-title { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
-    .col-dh-btns { display: flex; gap: 0.4rem; font-size: 0.74rem; font-weight: 600; }
-    .col-dh-btns button { background: none; border: none; cursor: pointer; color: var(--gold-700); transition: color 0.1s; }
-    .col-dh-btns button:hover { color: var(--gold-900); }
-    #col-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 0.4rem; max-height: 210px; overflow-y: auto; }
-    .col-lbl {
-      display: flex; align-items: center; gap: 0.35rem;
-      font-size: 0.78rem; color: var(--ink-muted); padding: 0.28rem 0.35rem; border-radius: 5px; cursor: pointer; transition: background 0.1s;
+    .extra-toggle:hover { background: var(--sand-0); }
+    .extra-toggle-icon { font-size: 0.55rem; transition: transform 0.2s; color: var(--amber-4); }
+    .extra-body {
+      display: none; padding: 0.75rem 1.1rem;
+      font-size: 0.88rem; color: var(--ink-1); line-height: 1.75;
+      background: var(--sand-0); white-space: pre-wrap; word-break: break-word;
+      border-top: 1px solid var(--sand-1);
     }
-    .col-lbl:hover { background: var(--gold-50); }
-    .col-lbl input { accent-color: var(--gold-600); flex-shrink: 0; }
-    .col-lbl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .extra-body.open { display: block; }
 
-    /* The actual table */
-    .table-card {
-      background: white; border: 1px solid var(--gold-200);
-      border-radius: 12px; box-shadow: 0 2px 16px rgba(180,83,9,0.08); overflow: hidden;
+    /* Commentary */
+    .commentaries-wrap { border-top: 1px solid var(--sand-2); }
+    .commentary-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 1rem; cursor: pointer;
+      background: var(--sand-0); transition: background var(--trans);
+      user-select: none;
     }
-    .table-scroll { overflow: auto; max-height: 65vh; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 600px; }
-    thead th {
-      position: sticky; top: 0; z-index: 5;
-      background: linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);
-      border-bottom: 2px solid var(--gold-300);
-      padding: 0.8rem 1.1rem; text-align: left;
-      font-size: 0.67rem; letter-spacing: 0.09em; text-transform: uppercase;
-      color: var(--gold-800); font-weight: 700; white-space: nowrap;
+    .commentary-toggle:hover { background: var(--sand-1); }
+    .ct-left { display: flex; align-items: center; gap: 0.5rem; }
+    .ct-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--amber-6); }
+    .ct-count {
+      font-size: 0.65rem; background: var(--amber-4); color: white;
+      border-radius: 99px; padding: 0 0.4rem; font-weight: 600;
     }
-    tbody td {
-      padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--gold-50);
-      color: var(--ink-muted); vertical-align: top; line-height: 1.65; white-space: nowrap;
+    .ct-chevron { font-size: 0.55rem; color: var(--amber-4); transition: transform 0.2s; }
+    .commentary-body { display: none; }
+    .commentary-body.open { display: block; }
+    .commentary-item {
+      border-top: 1px solid var(--sand-1);
+      padding: 0.85rem 1.1rem;
     }
-    tbody tr { transition: background 0.1s; }
-    tbody tr:hover { background: #fff9e6 !important; }
-    tbody tr:nth-child(even) { background: #fef9f0; }
-    tbody tr.is-current { background: var(--gold-100) !important; outline: 2px solid var(--gold-400); outline-offset: -2px; }
-    tbody tr.is-match { background: #fffbeb !important; }
-    mark.mark-search {
-      background: var(--gold-200); color: var(--ink);
-      border-radius: 3px; padding: 0 2px; font-weight: 600;
-      box-shadow: 0 0 0 1px rgba(251,191,36,0.5);
+    .commentary-author {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--amber-5); margin-bottom: 0.45rem;
     }
-    .row-count { text-align: right; padding: 0.45rem 0.25rem; font-size: 0.7rem; color: var(--ink-faint); }
+    .commentary-text {
+      font-size: 0.87rem; color: var(--ink-1); line-height: 1.8;
+      white-space: pre-wrap; word-break: break-word;
+    }
 
-    /* ---- STATUS OVERLAY ---- */
-    #status-message {
-      display: none; position: fixed; inset: 0; z-index: 100;
-      background: rgba(253,246,227,0.85); backdrop-filter: blur(4px);
+    /* Highlight marks */
+    mark.hl-m {
+      background: rgba(196,154,60,0.3); border-radius: 3px;
+      padding: 0 2px; font-weight: 600; color: inherit;
+    }
+
+    /* ── STATUS OVERLAY ── */
+    #status-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(253,250,243,0.88); backdrop-filter: blur(6px);
       align-items: center; justify-content: center;
     }
-    #status-message.visible { display: flex; }
-    .status-card {
-      display: flex; flex-direction: column; align-items: center; gap: 1rem;
-      background: white; border: 1px solid var(--gold-200); border-radius: 16px;
-      padding: 2.5rem 3rem; box-shadow: 0 8px 40px rgba(180,83,9,0.12);
+    #status-overlay.on { display: flex; }
+    .status-box {
+      background: white; border: 1px solid var(--sand-2); border-radius: 14px;
+      padding: 2.5rem 3rem; text-align: center;
+      box-shadow: 0 8px 40px rgba(122,92,16,0.1);
     }
     .spinner {
-      width: 32px; height: 32px; border-radius: 50%;
-      border: 3px solid var(--gold-200); border-top-color: var(--gold-500);
-      animation: spin 0.8s linear infinite;
+      width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 1rem;
+      border: 3px solid var(--sand-2); border-top-color: var(--amber-4);
+      animation: spin 0.75s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #status-text { font-family: 'Noto Serif', serif; color: var(--gold-800); font-size: 1rem; }
-    #status-text.error { color: #dc2626; font-family: 'Inter', sans-serif; font-size: 0.88rem; }
+    .status-text { font-family: 'Noto Serif', serif; color: var(--amber-6); }
+    .status-text.err { font-family: 'Noto Sans', sans-serif; color: #b91c1c; font-size: 0.88rem; }
 
-    /* ---- RESPONSIVE ---- */
-    @media (max-width: 700px) {
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
       .reader-layout { grid-template-columns: 1fr; }
-      .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--divider); max-height: 38vh; }
+      .sidebar {
+        position: static; height: auto; max-height: 40vh;
+        border-right: none; border-bottom: 1px solid var(--divider);
+      }
       .reader-content { height: auto; padding: 1rem; }
-      #reader-view.table-mode .reader-content { padding: 0.5rem; }
     }
+    @media (max-width: 520px) {
+      .home-hero { padding: 2.5rem 1rem 1.5rem; }
+      .text-grid { padding: 0 1rem; }
+    }
+
+    /* ── UTILITY ── */
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-<!-- Nav -->
+<!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a href="index.html" class="nav-brand"><span>📜</span> Malolan</a>
-    <div class="nav-search-wrap" id="global-search-wrap">
-      <span class="nav-search-icon">⌕</span>
-      <input id="global-search" type="text" placeholder="Search text… (/ to focus)" autocomplete="off">
-      <span id="global-search-count"></span>
+    <a class="nav-brand" id="brand-link" href="#">
+      <span>📜</span> Malolan
+    </a>
+
+    <div class="site-search-wrap">
+      <span class="site-search-icon">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+      </span>
+      <input id="site-search" type="text" placeholder="Search all texts… (Press /)" autocomplete="off" spellcheck="false">
+      <button id="site-search-clear" title="Clear search" aria-label="Clear search">
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd"/></svg>
+      </button>
     </div>
-    <div id="nav-file-name"></div>
+
+    <div class="nav-meta">
+      <div id="nav-pill"></div>
+    </div>
   </div>
 </nav>
 
-<!-- Status overlay -->
-<div id="status-message">
-  <div class="status-card">
+<!-- STATUS OVERLAY -->
+<div id="status-overlay">
+  <div class="status-box">
     <div class="spinner"></div>
-    <p id="status-text">Loading sacred texts…</p>
+    <p class="status-text" id="status-text">Loading texts…</p>
   </div>
 </div>
 
-<!-- Homepage -->
-<div id="homepage-view">
+<!-- HOMEPAGE -->
+<div id="home-view">
   <div class="home-hero">
-    <h1>Explore your <em>sacred texts</em></h1>
-    <div class="gold-rule"></div>
-    <p>Select a dataset to open an interactive, searchable reader with column controls.</p>
+    <h1>Explore the <em>Sacred Corpus</em></h1>
+    <div class="divider-rule"></div>
+    <p>Verse-by-verse reader with collapsible commentaries, transliterations, and translations across the Pāñcarātra tradition.</p>
   </div>
-  <ul id="file-list" class="file-grid"></ul>
+  <div id="text-grid" class="text-grid"></div>
 </div>
 
-<!-- Reader/Table view -->
-<div id="reader-view">
-  <a href="index.html" class="back-btn">← All datasets</a>
-
-  <!-- View mode toggle -->
-  <div class="view-mode-bar">
-    <button class="view-btn active" id="btn-reader">Reader view</button>
-    <button class="view-btn" id="btn-table">Table view</button>
+<!-- SEARCH RESULTS VIEW -->
+<div id="search-results-view">
+  <div class="sr-header">
+    <h2>Results for <strong id="sr-query-label"></strong></h2>
   </div>
+  <div id="sr-list"></div>
+</div>
+
+<!-- READER VIEW -->
+<div id="reader-view">
+  <a class="reader-back" id="reader-back" href="#">
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+    All texts
+  </a>
 
   <div class="reader-layout">
-    <!-- Sidebar (reader mode only) -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-title">Contents</div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <span class="sb-label">Contents</span>
+      <div class="sb-search-wrap">
+        <span class="sb-search-icon">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        </span>
+        <input id="file-search" type="text" placeholder="Search this text…" autocomplete="off">
+      </div>
+      <div id="file-search-count"></div>
+      <div id="file-search-nav">
+        <button class="fsnav-btn" id="fsn-prev">↑ Prev</button>
+        <button class="fsnav-btn" id="fsn-next">↓ Next</button>
+        <button class="fsnav-btn" id="fsn-clear">✕</button>
+      </div>
       <div id="sidebar-tree"></div>
     </aside>
 
-    <!-- Main content -->
-    <main class="reader-content">
-      <!-- Reader body -->
+    <!-- CONTENT -->
+    <main class="reader-content" id="reader-content">
+      <div id="meta-strip" class="text-meta-strip"></div>
       <div id="reader-body"></div>
-
-      <!-- Table fallback -->
-      <div id="table-fallback">
-        <div class="table-toolbar">
-          <!-- table search -->
-          <div class="search-wrap">
-            <span class="search-icon-left">⌕</span>
-            <input id="table-search-input" type="text" autocomplete="off" placeholder="Search rows… (/ to focus)">
-            <div id="table-search-controls">
-              <span id="table-search-count"></span>
-              <button class="snav-btn" id="tsearch-prev" title="Previous">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd"/></svg>
-              </button>
-              <button class="snav-btn" id="tsearch-next" title="Next">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-              </button>
-              <button class="sclear-btn" id="tsearch-clear" title="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd"/></svg>
-              </button>
-            </div>
-          </div>
-          <!-- column toggle -->
-          <div id="col-dropdown">
-            <button id="col-dropdown-btn" type="button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="color:var(--gold-600)"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-5.414 5.414a1 1 0 00-.293.707V17l-4-2v-3.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd"/></svg>
-              <span id="col-count-label">Columns</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 20 20" fill="currentColor" style="color:var(--ink-faint)"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-            </button>
-            <div id="col-panel-wrap">
-              <div class="col-dh">
-                <span class="col-dh-title">Toggle columns</span>
-                <div class="col-dh-btns">
-                  <button id="col-all">All</button>
-                  <span style="color:var(--gold-200)">|</span>
-                  <button id="col-none">None</button>
-                </div>
-              </div>
-              <div id="col-panel"></div>
-            </div>
-          </div>
-        </div>
-        <div class="table-card">
-          <div class="table-scroll">
-            <table id="raw-table"></table>
-          </div>
-        </div>
-        <div class="row-count" id="row-count-el"></div>
-      </div><!-- /table-fallback -->
     </main>
   </div>
 </div>
 
 <script>
 (function () {
-  // ---- CONFIG ----
-  const tsvFiles = [
-    "agama_pramanya.tsv",
-    "aniruddha_samhita.tsv",
-    "lakshmi-tantram.tsv",
-    "paramapurusha-samhita.tsv",
-    "paushkara-samhita.tsv",
-    "sri-parameshvara-samhita.tsv",
-    "sriprashna-samhita.tsv",
-    "sri-vishvaksena-samhita.tsv",
-    "vishnu-samhita.tsv"
-  ];
-  const DATA_FOLDER = "data/";
+  /* ─── REGISTRY ─── */
+  // Populated at runtime by fetching data/manifest.json.
+  // manifest.json is a simple JSON array of filenames, e.g. ["foo.json","bar.json"].
+  // To add a new text: drop its JSON into /data/ and add its filename to manifest.json.
+  const DATA_DIR = 'data/';
+  const MANIFEST = DATA_DIR + 'manifest.json';
+  let REGISTRY = [];  // { slug, label, file }[] — filled by loadManifest()
 
-  // ---- DOM ----
-  const homepageView   = document.getElementById('homepage-view');
-  const readerView     = document.getElementById('reader-view');
-  const fileListEl     = document.getElementById('file-list');
-  const navFileName    = document.getElementById('nav-file-name');
-  const globalSearch   = document.getElementById('global-search');
-  const globalSearchWrap = document.getElementById('global-search-wrap');
-  const globalSearchCount = document.getElementById('global-search-count');
-  const statusMessage  = document.getElementById('status-message');
-  const statusText     = document.getElementById('status-text');
-  const btnReader      = document.getElementById('btn-reader');
-  const btnTable       = document.getElementById('btn-table');
-  const sidebarTree    = document.getElementById('sidebar-tree');
-  const readerBody     = document.getElementById('reader-body');
-  const tableFallback  = document.getElementById('table-fallback');
-  const rawTable       = document.getElementById('raw-table');
-  const rowCountEl     = document.getElementById('row-count-el');
-  // table search
-  const tSearchInput   = document.getElementById('table-search-input');
-  const tSearchControls= document.getElementById('table-search-controls');
-  const tSearchCount   = document.getElementById('table-search-count');
-  const tSearchPrev    = document.getElementById('tsearch-prev');
-  const tSearchNext    = document.getElementById('tsearch-next');
-  const tSearchClear   = document.getElementById('tsearch-clear');
-  // col dropdown
-  const colDropdown    = document.getElementById('col-dropdown');
-  const colDropdownBtn = document.getElementById('col-dropdown-btn');
-  const colPanelWrap   = document.getElementById('col-panel-wrap');
-  const colPanel       = document.getElementById('col-panel');
-  const colCountLabel  = document.getElementById('col-count-label');
-  const colAllBtn      = document.getElementById('col-all');
-  const colNoneBtn     = document.getElementById('col-none');
+  /* ─── DOM refs ─── */
+  const homeView    = document.getElementById('home-view');
+  const srView      = document.getElementById('search-results-view');
+  const readerView  = document.getElementById('reader-view');
+  const overlay     = document.getElementById('status-overlay');
+  const statusText  = document.getElementById('status-text');
+  const textGrid    = document.getElementById('text-grid');
+  const srList      = document.getElementById('sr-list');
+  const srLabel     = document.getElementById('sr-query-label');
+  const sidebarTree = document.getElementById('sidebar-tree');
+  const readerBody  = document.getElementById('reader-body');
+  const metaStrip   = document.getElementById('meta-strip');
+  const navPill     = document.getElementById('nav-pill');
+  const brandLink   = document.getElementById('brand-link');
+  const readerBack  = document.getElementById('reader-back');
+  const siteSearch  = document.getElementById('site-search');
+  const siteSearchClear = document.getElementById('site-search-clear');
+  const fileSearch  = document.getElementById('file-search');
+  const fileSearchCount = document.getElementById('file-search-count');
+  const fileSearchNav   = document.getElementById('file-search-nav');
+  const fsnPrev     = document.getElementById('fsn-prev');
+  const fsnNext     = document.getElementById('fsn-next');
+  const fsnClear    = document.getElementById('fsn-clear');
 
-  // ---- STATE ----
-  let currentHeaders = [], currentRows = [], visibleColumns = [];
-  let viewMode = 'reader';
-  let readerSearchMatches = [], readerSearchPointer = -1, currentQuery = '';
-  let tableSearchMatches = [], tableSearchPointer = -1, tableSearchQuery = '';
-  let tableDebounce = null, readerDebounce = null;
+  /* ─── STATE ─── */
+  let loadedTexts = {};          // slug → parsed JSON
+  let currentSlug = null;
+  let fileSearchMatches = [];    // array of mark elements in current reader
+  let fileSearchPtr = -1;
+  let siteSearchDebounce = null;
+  let fileSearchDebounce = null;
 
-  // ---- HELPERS ----
-  const esc = s => !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  /* ─── UTILS ─── */
+  const esc = s => !s ? '' : String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-  function showStatus(msg, isErr=false) {
-    statusMessage.classList.add('visible');
+  function showOverlay(msg, isErr = false) {
+    overlay.classList.add('on');
     statusText.textContent = msg;
-    statusText.className = isErr ? 'error' : '';
+    statusText.className = isErr ? 'status-text err' : 'status-text';
   }
-  function hideStatus() { statusMessage.classList.remove('visible'); }
+  function hideOverlay() { overlay.classList.remove('on'); }
 
-  // ---- ROUTING ----
-  window.addEventListener('DOMContentLoaded', () => {
-    const p = new URLSearchParams(window.location.search);
-    const f = p.get('file');
-    if (f && tsvFiles.includes(f)) loadFile(f);
-    else renderHome();
-  });
+  function setView(which) {
+    homeView.style.display   = which === 'home'   ? 'block' : 'none';
+    srView.style.display     = which === 'search' ? 'block' : 'none';
+    readerView.style.display = which === 'reader' ? 'block' : 'none';
+    navPill.style.display    = which === 'reader' ? 'block' : 'none';
+    // Clear file search when leaving reader
+    if (which !== 'reader') clearFileSearch();
+  }
 
-  function renderHome() {
-    homepageView.style.display = 'block';
-    readerView.style.display = 'none';
-    fileListEl.innerHTML = '';
-    tsvFiles.forEach(file => {
-      const li = document.createElement('li');
-      li.innerHTML = `<a href="?file=${encodeURIComponent(file)}" class="file-card">
-        <div class="file-icon">📄</div>
-        <div class="file-info">
-          <div class="file-name">${esc(file)}</div>
-          <div class="file-cta">Explore →</div>
+  /* ─── INIT ─── */
+  wireGlobalKeys();
+  brandLink.addEventListener('click', e => { e.preventDefault(); goHome(); });
+  readerBack.addEventListener('click', e => { e.preventDefault(); goHome(); });
+  loadManifest();
+
+  /* ─── MANIFEST LOADER ─── */
+  async function loadManifest() {
+    showOverlay('Loading library…');
+    try {
+      const res = await fetch(MANIFEST);
+      if (!res.ok) throw new Error('manifest.json not found (HTTP ' + res.status + ')');
+      const files = await res.json();
+      if (!Array.isArray(files) || !files.length) throw new Error('manifest.json is empty or invalid');
+      REGISTRY = files.map(filename => ({
+        slug: filename.replace(/\.json$/i, ''),
+        label: filename.replace(/\.json$/i, '').replace(/[-_]/g, ' '),
+        file: DATA_DIR + filename,
+      }));
+      hideOverlay();
+      buildHomepage();
+    } catch (e) {
+      showOverlay('Could not load data/manifest.json — ' + e.message, true);
+    }
+  }
+
+  /* ─── HOMEPAGE ─── */
+  function buildHomepage() {
+    textGrid.innerHTML = '';
+    REGISTRY.forEach(reg => {
+      const card = document.createElement('div');
+      card.className = 'text-card';
+      card.innerHTML = `
+        <div class="tc-top">
+          <div class="tc-icon">📜</div>
+          <div>
+            <div class="tc-name" id="tc-name-${reg.slug}">${esc(reg.label)}</div>
+            <div class="tc-author" id="tc-author-${reg.slug}">—</div>
+          </div>
         </div>
-      </a>`;
-      fileListEl.appendChild(li);
+        <div class="tc-desc" id="tc-desc-${reg.slug}">Click to explore</div>
+        <div class="tc-stats" id="tc-stats-${reg.slug}"></div>`;
+      card.addEventListener('click', () => openText(reg.slug));
+      textGrid.appendChild(card);
+      // Lazy populate meta from cache or after load
+      if (loadedTexts[reg.slug]) populateCard(reg.slug);
     });
+    setView('home');
   }
 
-  function loadFile(fileName) {
-    showStatus('Loading dataset…');
-    homepageView.style.display = 'none';
-    readerView.style.display = 'block';
-    navFileName.textContent = fileName;
-    navFileName.style.display = 'block';
-
-    fetch(DATA_FOLDER + fileName)
-      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-      .then(txt => {
-        Papa.parse(txt, {
-          delimiter: '\t', skipEmptyLines: true,
-          complete: res => { processData(res.data); hideStatus(); },
-          error: () => showStatus('Parsing error.', true)
-        });
-      })
-      .catch(() => showStatus(`Failed to load "${fileName}".`, true));
+  function populateCard(slug) {
+    const d = loadedTexts[slug];
+    if (!d) return;
+    const m = d.metadata;
+    const nEl = document.getElementById('tc-name-' + slug);
+    const aEl = document.getElementById('tc-author-' + slug);
+    const dEl = document.getElementById('tc-desc-' + slug);
+    const sEl = document.getElementById('tc-stats-' + slug);
+    if (nEl && m.scripture_name) nEl.textContent = m.scripture_name;
+    if (aEl) aEl.textContent = m.author || '—';
+    if (dEl) dEl.textContent = m.description || '';
+    if (sEl) sEl.innerHTML = [
+      m.year_of_composition ? '<span class="tc-stat">' + esc(m.year_of_composition) + '</span>' : '',
+      m.total_chapters       ? '<span class="tc-stat">' + m.total_chapters + ' chapters</span>' : '',
+      m.total_verses         ? '<span class="tc-stat">' + m.total_verses + ' verses</span>' : '',
+    ].join('');
   }
 
-  // ---- DATA PROCESSING ----
-  function processData(data) {
-    if (!data.length) return;
-    currentHeaders = data[0];
-    currentRows    = data.slice(1);
-    visibleColumns = currentHeaders.map(() => true);
-
-    buildSidebar();
-    renderReader();
-    renderRawTable();
-    buildColDropdown();
-    setViewMode('reader');
-    rowCountEl.textContent = `${currentRows.length} row${currentRows.length !== 1 ? 's' : ''}`;
+  function goHome() {
+    currentSlug = null;
+    siteSearch.value = '';
+    siteSearchClear.classList.remove('visible');
+    buildHomepage();
   }
 
-  // ---- SIDEBAR ----
-  // Groups rows by their first column value; each unique value becomes a sidebar section.
-  function buildSidebar() {
-    sidebarTree.innerHTML = '';
-    const groups = getGroups();
-    groups.forEach(({ key, rows }) => {
-      const section = document.createElement('div');
-      section.className = 'sidebar-group';
-
-      const btn = document.createElement('div');
-      btn.className = 'sidebar-group-btn';
-      btn.innerHTML = `<span>${esc(key)}</span><span class="sidebar-chevron">▶</span>`;
-      section.appendChild(btn);
-
-      const items = document.createElement('div');
-      items.className = 'sidebar-items';
-
-      // Sub-items: unique values from second column (if exists), else show row count
-      const subKeys = currentHeaders.length > 1
-        ? [...new Set(rows.map(r => r[1] || ''))].slice(0, 50)
-        : [];
-
-      if (subKeys.length > 1) {
-        subKeys.forEach(sub => {
-          const item = document.createElement('div');
-          item.className = 'sidebar-item';
-          item.textContent = sub || '—';
-          item.addEventListener('click', () => {
-            scrollToCard(key, sub);
-            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            item.classList.add('active');
-          });
-          items.appendChild(item);
-        });
-      } else {
-        const item = document.createElement('div');
-        item.className = 'sidebar-item';
-        item.textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`;
-        item.addEventListener('click', () => {
-          scrollToCard(key, null);
-          document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-          item.classList.add('active');
-        });
-        items.appendChild(item);
-      }
-      section.appendChild(items);
-
-      btn.addEventListener('click', () => {
-        const open = items.classList.toggle('open');
-        btn.classList.toggle('active', open);
-        btn.querySelector('.sidebar-chevron').style.transform = open ? 'rotate(90deg)' : '';
-      });
-      sidebarTree.appendChild(section);
-    });
+  /* ─── LOAD JSON ─── */
+  async function loadText(slug) {
+    if (loadedTexts[slug]) return loadedTexts[slug];
+    const reg = REGISTRY.find(r => r.slug === slug);
+    if (!reg) throw new Error('Unknown text: ' + slug);
+    showOverlay('Loading ' + reg.label + '…');
+    const res = await fetch(reg.file);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    loadedTexts[slug] = data;
+    // Update REGISTRY label from real metadata now that we have it
+    if (data.metadata?.scripture_name) reg.label = data.metadata.scripture_name;
+    populateCard(slug);
+    return data;
   }
 
-  function getGroups() {
-    const map = new Map();
-    currentRows.forEach(row => {
-      const key = row[0] || '';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(row);
-    });
-    return [...map.entries()].map(([key, rows]) => ({ key, rows }));
+  /* ─── OPEN TEXT ─── */
+  async function openText(slug) {
+    try {
+      const data = await loadText(slug);
+      hideOverlay();
+      currentSlug = slug;
+      navPill.textContent = data.metadata.scripture_name || slug;
+      renderMeta(data.metadata);
+      renderReader(data);
+      buildSidebar(data);
+      clearFileSearch();
+      setView('reader');
+    } catch(e) {
+      showOverlay(`Failed to load: ${e.message}`, true);
+    }
   }
 
-  function scrollToCard(groupKey, subKey) {
-    const id = subKey
-      ? `card-${CSS.escape(groupKey)}-${CSS.escape(subKey)}`
-      : `group-${CSS.escape(groupKey)}`;
-    const el = document.getElementById(id) || document.querySelector(`[data-group="${CSS.escape(groupKey)}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  /* ─── META STRIP ─── */
+  function renderMeta(m) {
+    const fields = [
+      ['Scripture', m.scripture_name],
+      ['Author', m.author],
+      ['Composed', m.year_of_composition],
+      ['Language', m.language],
+      ['Category', m.category],
+      ['Chapters', m.total_chapters],
+      ['Verses', m.total_verses],
+    ].filter(([,v]) => v);
+    metaStrip.innerHTML = fields.map(([k, v]) => `
+      <div class="meta-item">
+        <span class="meta-label">${esc(k)}</span>
+        <span class="meta-value">${esc(String(v))}</span>
+      </div>`).join('');
   }
 
-  // ---- READER VIEW ----
-  function renderReader() {
+  /* ─── READER ─── */
+  function renderReader(data) {
     readerBody.innerHTML = '';
-    const groups = getGroups();
-
-    groups.forEach(({ key, rows }) => {
-      const groupEl = document.createElement('div');
-      groupEl.className = 'group-block';
-      groupEl.id = `group-${key}`;
-      groupEl.dataset.group = key;
-
-      const heading = document.createElement('div');
-      heading.className = 'section-heading';
-      heading.innerHTML = `<h2>${esc(key)}</h2><span class="section-badge">${rows.length} row${rows.length !== 1 ? 's' : ''}</span>`;
-      groupEl.appendChild(heading);
-
-      rows.forEach((row, i) => {
-        const card = buildRowCard(row, key, i);
-        groupEl.appendChild(card);
+    const sections = data.content?.sections || [];
+    sections.forEach(section => {
+      const secEl = document.createElement('div');
+      secEl.className = 'section-block';
+      secEl.id = `sec-${section.number}`;
+      secEl.innerHTML = `
+        <div class="section-heading">
+          <h2>${esc(section.title)}</h2>
+          <span class="section-badge">${(section.verses || []).length} verses</span>
+        </div>`;
+      (section.verses || []).forEach(verse => {
+        secEl.appendChild(buildVerseCard(verse, section.number));
       });
-
-      readerBody.appendChild(groupEl);
+      readerBody.appendChild(secEl);
     });
   }
 
-  function buildRowCard(row, groupKey, rowIndex) {
+  function buildVerseCard(verse, sectionNum) {
     const card = document.createElement('div');
-    card.className = 'row-card';
-    const sub = currentHeaders.length > 1 ? (row[1] || '') : '';
-    card.id = sub ? `card-${groupKey}-${sub}` : `card-${groupKey}-${rowIndex}`;
+    card.className = 'verse-card';
+    card.id = `v-${sectionNum}-${verse.verse_number}`;
 
-    // First column = reference/key, second = primary text (serif), rest = fields
-    const refVal = row[0] || '';
-    const primaryVal = row[1] || '';
+    /* Header */
+    const hdr = document.createElement('div');
+    hdr.className = 'verse-header';
+    hdr.innerHTML = `<span class="verse-num">§ ${sectionNum}.${verse.verse_number}</span>`;
+    card.appendChild(hdr);
 
-    // Tag-style fields from columns 2+
-    let tags = '';
-    for (let i = 2; i < Math.min(row.length, 6); i++) {
-      if (row[i]) {
-        tags += `<span class="row-card-tag"><strong>${esc(currentHeaders[i] || `Col ${i+1}`)}</strong>${esc(row[i])}</span>`;
-      }
+    /* Original text */
+    const orig = document.createElement('div');
+    orig.className = 'verse-original';
+    orig.setAttribute('data-searchable', '');
+    orig.textContent = verse.original_text || '';
+    card.appendChild(orig);
+
+    /* Extras: IAST & translation */
+    const extrasWrap = document.createElement('div');
+    extrasWrap.className = 'verse-extras';
+
+    if (verse.iast_text) extrasWrap.appendChild(makeExtraRow('IAST Transliteration', verse.iast_text));
+    if (verse.english_translation) extrasWrap.appendChild(makeExtraRow('English Translation', verse.english_translation));
+
+    if (extrasWrap.children.length) card.appendChild(extrasWrap);
+
+    /* Commentaries */
+    const comms = (verse.commentaries || []).filter(c => c.commentary);
+    if (comms.length) {
+      const cWrap = document.createElement('div');
+      cWrap.className = 'commentaries-wrap';
+
+      const toggle = document.createElement('div');
+      toggle.className = 'commentary-toggle';
+      toggle.innerHTML = `
+        <div class="ct-left">
+          <span class="ct-label">Commentary</span>
+          <span class="ct-count">${comms.length}</span>
+        </div>
+        <span class="ct-chevron">▶</span>`;
+      cWrap.appendChild(toggle);
+
+      const body = document.createElement('div');
+      body.className = 'commentary-body';
+
+      comms.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'commentary-item';
+        const authorEl = document.createElement('div');
+        authorEl.className = 'commentary-author';
+        authorEl.textContent = c.author || '';
+        const textEl = document.createElement('div');
+        textEl.className = 'commentary-text';
+        textEl.setAttribute('data-searchable', '');
+        textEl.textContent = c.commentary;
+        item.appendChild(authorEl);
+        item.appendChild(textEl);
+        body.appendChild(item);
+      });
+
+      toggle.addEventListener('click', () => {
+        const open = body.classList.toggle('open');
+        toggle.querySelector('.ct-chevron').style.transform = open ? 'rotate(90deg)' : '';
+      });
+
+      cWrap.appendChild(body);
+      card.appendChild(cWrap);
     }
 
-    // Additional fields beyond the first two
-    let fields = '';
-    for (let i = 2; i < row.length; i++) {
-      if (!row[i]) continue;
-      fields += `<div class="row-card-field">
-        <div class="row-card-field-label">${esc(currentHeaders[i] || `Column ${i+1}`)}</div>
-        <div data-searchable>${esc(row[i])}</div>
-      </div>`;
-    }
-
-    card.innerHTML = `
-      <div class="row-card-header">
-        <span class="row-card-ref">${esc(refVal)}</span>
-        <div class="row-card-tags">${tags}</div>
-      </div>
-      <div class="row-card-body">
-        ${primaryVal ? `<div class="row-card-primary" data-searchable>${esc(primaryVal)}</div>` : ''}
-        ${fields}
-      </div>`;
     return card;
   }
 
-  // ---- RAW TABLE ----
-  function renderRawTable(query = '', matches = [], pointer = -1) {
-    const q = query.toLowerCase();
-    let html = '<thead><tr>';
-    currentHeaders.forEach((h, idx) => {
-      html += `<th data-col-idx="${idx}" style="${visibleColumns[idx] ? '' : 'display:none'}">${esc(h)}</th>`;
+  function makeExtraRow(label, text) {
+    const row = document.createElement('div');
+    row.className = 'extra-row';
+
+    const tog = document.createElement('div');
+    tog.className = 'extra-toggle';
+    tog.innerHTML = `<span>${esc(label)}</span><span class="extra-toggle-icon">▶</span>`;
+
+    const body = document.createElement('div');
+    body.className = 'extra-body';
+    body.setAttribute('data-searchable', '');
+    body.textContent = text;
+
+    tog.addEventListener('click', () => {
+      const open = body.classList.toggle('open');
+      tog.querySelector('.extra-toggle-icon').style.transform = open ? 'rotate(90deg)' : '';
     });
-    html += '</tr></thead><tbody>';
-    currentRows.forEach((row, ri) => {
-      const isMatch   = q && matches.includes(ri);
-      const isCurrent = isMatch && matches[pointer] === ri;
-      const cls       = isCurrent ? 'is-current' : isMatch ? 'is-match' : '';
-      html += `<tr data-row-idx="${ri}" class="${cls}">`;
-      row.forEach((cell, ci) => {
-        const content = isMatch ? highlightCell(cell, query) : esc(cell);
-        html += `<td data-col-idx="${ci}" style="${visibleColumns[ci] ? '' : 'display:none'}">${content}</td>`;
+
+    row.appendChild(tog);
+    row.appendChild(body);
+    return row;
+  }
+
+  /* ─── SIDEBAR ─── */
+  function buildSidebar(data) {
+    sidebarTree.innerHTML = '';
+    const sections = data.content?.sections || [];
+    sections.forEach(section => {
+      const group = document.createElement('div');
+      group.className = 'sb-group';
+
+      const btn = document.createElement('div');
+      btn.className = 'sb-group-btn';
+      btn.innerHTML = `<span>${esc(section.title)}</span><span class="sb-chevron">▶</span>`;
+      group.appendChild(btn);
+
+      const items = document.createElement('div');
+      items.className = 'sb-items';
+
+      (section.verses || []).forEach(verse => {
+        const item = document.createElement('div');
+        item.className = 'sb-item';
+        const preview = (verse.original_text || '').split('\n')[0].slice(0, 40);
+        item.textContent = `${verse.verse_number}. ${preview}`;
+        item.title = preview;
+        item.addEventListener('click', () => {
+          const el = document.getElementById(`v-${section.number}-${verse.verse_number}`);
+          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); flashCard(el); }
+          document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
+          item.classList.add('active');
+        });
+        items.appendChild(item);
       });
-      html += '</tr>';
+
+      btn.addEventListener('click', () => {
+        const open = items.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.querySelector('.sb-chevron').style.transform = open ? 'rotate(90deg)' : '';
+        // Scroll section into view
+        if (open) {
+          const el = document.getElementById(`sec-${section.number}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      group.appendChild(items);
+      sidebarTree.appendChild(group);
     });
-    html += '</tbody>';
-    rawTable.innerHTML = html;
   }
 
-  function highlightCell(raw, query) {
-    const s = raw || '';
-    const lo = s.toLowerCase(), lq = query.toLowerCase();
-    let idx = lo.indexOf(lq);
-    if (idx === -1) return esc(s);
-    return esc(s.slice(0, idx))
-      + `<mark class="mark-search">${esc(s.slice(idx, idx + query.length))}</mark>`
-      + esc(s.slice(idx + query.length));
+  function flashCard(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
   }
 
-  // ---- VIEW MODE TOGGLE ----
-  function setViewMode(mode) {
-    viewMode = mode;
-    if (mode === 'reader') {
-      btnReader.classList.add('active');
-      btnTable.classList.remove('active');
-      readerBody.style.display = '';
-      tableFallback.style.display = 'none';
-      readerView.classList.remove('table-mode');
-      globalSearchWrap.classList.add('active');
-    } else {
-      btnTable.classList.add('active');
-      btnReader.classList.remove('active');
-      readerBody.style.display = 'none';
-      tableFallback.style.display = 'block';
-      readerView.classList.add('table-mode');
-      globalSearchWrap.classList.remove('active');
-    }
-    // Clear searches on switch
-    clearReaderSearch();
-    clearTableSearch();
-  }
-
-  btnReader.addEventListener('click', () => setViewMode('reader'));
-  btnTable.addEventListener('click', () => setViewMode('table'));
-
-  // ---- READER SEARCH (nav search bar) ----
-  globalSearch.addEventListener('input', e => {
-    clearTimeout(readerDebounce);
-    readerDebounce = setTimeout(() => doReaderSearch(e.target.value), 180);
+  /* ─── FILE-LEVEL SEARCH ─── */
+  fileSearch.addEventListener('input', e => {
+    clearTimeout(fileSearchDebounce);
+    fileSearchDebounce = setTimeout(() => doFileSearch(e.target.value), 160);
   });
-  globalSearch.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); if (readerSearchMatches.length) navigateReaderSearch(e.shiftKey ? -1 : 1); }
-    else if (e.key === 'Escape') clearReaderSearch();
+  fileSearch.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); stepFileSearch(e.shiftKey ? -1 : 1); }
+    if (e.key === 'Escape') clearFileSearch();
   });
-  document.addEventListener('keydown', e => {
-    if (e.key === '/' && viewMode === 'reader' && readerView.style.display !== 'none') {
-      if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
-      e.preventDefault(); globalSearch.focus();
-    }
-    if (e.key === '/' && viewMode === 'table' && readerView.style.display !== 'none') {
-      if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
-      e.preventDefault(); tSearchInput.focus();
-    }
-  });
+  fsnPrev.addEventListener('click', () => stepFileSearch(-1));
+  fsnNext.addEventListener('click', () => stepFileSearch(1));
+  fsnClear.addEventListener('click', () => { clearFileSearch(); fileSearch.focus(); });
 
-  function doReaderSearch(query) {
-    currentQuery = query.trim().toLowerCase();
+  function doFileSearch(query) {
     // Remove previous highlights
-    document.querySelectorAll('.row-card').forEach(c => c.classList.remove('highlighted'));
-    document.querySelectorAll('mark.hl').forEach(m => { m.parentNode.replaceChild(document.createTextNode(m.textContent), m); });
+    document.querySelectorAll('mark.hl-m').forEach(m => {
+      m.parentNode.replaceChild(document.createTextNode(m.textContent), m);
+    });
     document.querySelectorAll('[data-searchable]').forEach(el => el.normalize());
-    readerSearchMatches = []; readerSearchPointer = -1;
+    document.querySelectorAll('.verse-card').forEach(c => c.classList.remove('hl'));
+    fileSearchMatches = []; fileSearchPtr = -1;
 
-    if (!currentQuery) { globalSearchCount.textContent = ''; return; }
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      fileSearchCount.style.display = 'none';
+      fileSearchNav.classList.remove('visible');
+      return;
+    }
 
-    document.querySelectorAll('[data-searchable]').forEach(el => highlightInNode(el, currentQuery));
-    readerSearchMatches = Array.from(document.querySelectorAll('mark.hl'));
-    if (readerSearchMatches.length) { readerSearchPointer = 0; scrollToReaderMatch(0); }
-    globalSearchCount.textContent = readerSearchMatches.length
-      ? `${readerSearchPointer + 1}/${readerSearchMatches.length}`
+    // Auto-open commentary bodies so we can search inside
+    document.querySelectorAll('.commentary-body:not(.open)').forEach(b => {
+      b.classList.add('open');
+      const chev = b.previousElementSibling?.querySelector('.ct-chevron');
+      if (chev) chev.style.transform = 'rotate(90deg)';
+    });
+    document.querySelectorAll('.extra-body:not(.open)').forEach(b => {
+      b.classList.add('open');
+      const icon = b.previousElementSibling?.querySelector('.extra-toggle-icon');
+      if (icon) icon.style.transform = 'rotate(90deg)';
+    });
+
+    document.querySelectorAll('[data-searchable]').forEach(el => hlInNode(el, q));
+    fileSearchMatches = Array.from(document.querySelectorAll('mark.hl-m'));
+    fileSearchCount.textContent = fileSearchMatches.length
+      ? `${fileSearchMatches.length} result${fileSearchMatches.length > 1 ? 's' : ''}`
       : '0 results';
+    fileSearchCount.style.display = 'block';
+
+    if (fileSearchMatches.length) {
+      fileSearchNav.classList.add('visible');
+      fileSearchPtr = 0;
+      scrollToFileMatch(0);
+    } else {
+      fileSearchNav.classList.remove('visible');
+    }
   }
 
-  function navigateReaderSearch(dir) {
-    if (!readerSearchMatches.length) return;
-    readerSearchPointer = (readerSearchPointer + dir + readerSearchMatches.length) % readerSearchMatches.length;
-    scrollToReaderMatch(readerSearchPointer);
-    globalSearchCount.textContent = `${readerSearchPointer + 1}/${readerSearchMatches.length}`;
+  function stepFileSearch(dir) {
+    if (!fileSearchMatches.length) return;
+    fileSearchPtr = (fileSearchPtr + dir + fileSearchMatches.length) % fileSearchMatches.length;
+    scrollToFileMatch(fileSearchPtr);
   }
 
-  function scrollToReaderMatch(idx) {
-    const el = readerSearchMatches[idx];
-    if (!el) return;
-    document.querySelectorAll('.row-card').forEach(c => c.classList.remove('highlighted'));
-    const card = el.closest('.row-card');
-    if (card) { card.classList.add('highlighted', 'search-flash'); setTimeout(() => card.classList.remove('search-flash'), 700); }
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  function scrollToFileMatch(idx) {
+    const m = fileSearchMatches[idx];
+    if (!m) return;
+    document.querySelectorAll('.verse-card.hl').forEach(c => c.classList.remove('hl'));
+    const card = m.closest('.verse-card');
+    if (card) { card.classList.add('hl'); flashCard(card); }
+    m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    fileSearchCount.textContent = `${idx + 1} / ${fileSearchMatches.length}`;
   }
 
-  function clearReaderSearch() { globalSearch.value = ''; doReaderSearch(''); }
+  function clearFileSearch() {
+    fileSearch.value = '';
+    doFileSearch('');
+    fileSearchCount.style.display = 'none';
+    fileSearchNav.classList.remove('visible');
+  }
 
-  function highlightInNode(container, query) {
+  function hlInNode(container, q) {
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const nodes = [];
-    let node;
-    while ((node = walker.nextNode())) nodes.push(node);
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
     nodes.forEach(textNode => {
       const text = textNode.nodeValue;
-      const lower = text.toLowerCase();
-      let idx = lower.indexOf(query);
+      const lo = text.toLowerCase();
+      let idx = lo.indexOf(q);
       if (idx === -1) return;
       const frag = document.createDocumentFragment();
       let last = 0;
       while (idx !== -1) {
         if (idx > last) frag.appendChild(document.createTextNode(text.slice(last, idx)));
         const mark = document.createElement('mark');
-        mark.className = 'hl';
-        mark.textContent = text.slice(idx, idx + query.length);
+        mark.className = 'hl-m';
+        mark.textContent = text.slice(idx, idx + q.length);
         frag.appendChild(mark);
-        last = idx + query.length;
-        idx = lower.indexOf(query, last);
+        last = idx + q.length;
+        idx = lo.indexOf(q, last);
       }
       if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
       textNode.parentNode.replaceChild(frag, textNode);
     });
   }
 
-  // ---- TABLE SEARCH ----
-  tSearchInput.addEventListener('input', e => {
-    clearTimeout(tableDebounce);
-    tableDebounce = setTimeout(() => doTableSearch(e.target.value), 150);
+  /* ─── SITE-WIDE SEARCH ─── */
+  siteSearch.addEventListener('input', e => {
+    clearTimeout(siteSearchDebounce);
+    const q = e.target.value.trim();
+    siteSearchClear.classList.toggle('visible', q.length > 0);
+    if (!q) { goHome(); return; }
+    siteSearchDebounce = setTimeout(() => doSiteSearch(q), 300);
   });
-  tSearchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); if (tableSearchMatches.length) goTableMatch(e.shiftKey ? -1 : 1); }
-    else if (e.key === 'Escape') { clearTableSearch(); tSearchInput.blur(); }
+  siteSearch.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { siteSearch.value = ''; siteSearchClear.classList.remove('visible'); goHome(); }
   });
-  tSearchPrev.addEventListener('click', () => goTableMatch(-1));
-  tSearchNext.addEventListener('click', () => goTableMatch(1));
-  tSearchClear.addEventListener('click', () => { clearTableSearch(); tSearchInput.focus(); });
+  siteSearchClear.addEventListener('click', () => {
+    siteSearch.value = '';
+    siteSearchClear.classList.remove('visible');
+    goHome();
+  });
 
-  function doTableSearch(query) {
-    tableSearchQuery = query.trim();
-    tableSearchMatches = []; tableSearchPointer = -1;
-    const q = tableSearchQuery.toLowerCase();
-    if (q) {
-      currentRows.forEach((row, idx) => {
-        if (row.some(cell => (cell || '').toLowerCase().includes(q))) tableSearchMatches.push(idx);
+  async function doSiteSearch(query) {
+    // Load all texts we haven't loaded yet
+    showOverlay('Searching…');
+    try {
+      await Promise.all(REGISTRY.map(r => loadText(r.slug).catch(() => null)));
+    } catch(_) {}
+    hideOverlay();
+
+    const q = query.toLowerCase();
+    const results = [];
+
+    Object.entries(loadedTexts).forEach(([slug, data]) => {
+      const meta = data.metadata;
+      (data.content?.sections || []).forEach(section => {
+        (section.verses || []).forEach(verse => {
+          const fields = [
+            { label: 'original_text', text: verse.original_text || '' },
+            { label: 'iast_text', text: verse.iast_text || '' },
+            { label: 'english_translation', text: verse.english_translation || '' },
+            ...(verse.commentaries || []).map(c => ({ label: c.author || 'commentary', text: c.commentary || '' })),
+          ].filter(f => f.text);
+
+          fields.forEach(({ label, text }) => {
+            const lo = text.toLowerCase();
+            const idx = lo.indexOf(q);
+            if (idx === -1) return;
+            const start = Math.max(0, idx - 60);
+            const end   = Math.min(text.length, idx + q.length + 100);
+            const snippet = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+            results.push({
+              slug, sectionNum: section.number, verseNum: verse.verse_number,
+              sectionTitle: section.title,
+              scriptName: meta.scripture_name,
+              label, snippet, query,
+            });
+          });
+        });
       });
-      if (tableSearchMatches.length) tableSearchPointer = 0;
+    });
+
+    renderSearchResults(query, results);
+  }
+
+  function renderSearchResults(query, results) {
+    srLabel.textContent = `"${query}"`;
+    srList.innerHTML = '';
+
+    if (!results.length) {
+      srList.innerHTML = `<div class="sr-empty">No results for "${esc(query)}" across all loaded texts.</div>`;
+      setView('search');
+      return;
     }
-    renderRawTable(tableSearchQuery, tableSearchMatches, tableSearchPointer);
-    updateTableSearchUI();
-    if (tableSearchPointer !== -1) scrollToTableMatch();
-  }
 
-  function goTableMatch(offset) {
-    if (!tableSearchMatches.length) return;
-    tableSearchPointer = (tableSearchPointer + offset + tableSearchMatches.length) % tableSearchMatches.length;
-    renderRawTable(tableSearchQuery, tableSearchMatches, tableSearchPointer);
-    updateTableSearchUI();
-    scrollToTableMatch();
-  }
+    // Deduplicate: one card per (slug, sectionNum, verseNum) — but show matched field
+    const seen = new Set();
+    const q = query.toLowerCase();
 
-  function scrollToTableMatch() {
-    const row = rawTable.querySelector(`tr[data-row-idx="${tableSearchMatches[tableSearchPointer]}"]`);
-    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+    results.forEach(r => {
+      const key = `${r.slug}-${r.sectionNum}-${r.verseNum}`;
+      if (seen.has(key)) return; // only first match per verse to avoid clutter
+      seen.add(key);
 
-  function updateTableSearchUI() {
-    if (!tableSearchQuery) { tSearchControls.classList.remove('visible'); return; }
-    tSearchControls.classList.add('visible');
-    if (!tableSearchMatches.length) {
-      tSearchCount.textContent = '0 results';
-      tSearchCount.className = 'no-results';
-    } else {
-      tSearchCount.textContent = `${tableSearchPointer + 1}/${tableSearchMatches.length}`;
-      tSearchCount.className = '';
-    }
-  }
-
-  function clearTableSearch() {
-    tSearchInput.value = '';
-    doTableSearch('');
-  }
-
-  // ---- COLUMN TOGGLE ----
-  function buildColDropdown() {
-    colPanel.innerHTML = '';
-    currentHeaders.forEach((header, idx) => {
-      const label = document.createElement('label');
-      label.className = 'col-lbl';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.checked = true; cb.dataset.colIdx = idx;
-      cb.addEventListener('change', e => {
-        visibleColumns[idx] = e.target.checked;
-        applyColVis(idx);
-        updateColLabel();
+      const card = document.createElement('div');
+      card.className = 'sr-card';
+      card.innerHTML = `
+        <div class="sr-card-top">
+          <span class="sr-source">${esc(r.scriptName)}</span>
+          <span class="sr-dot">●</span>
+          <span class="sr-loc">${esc(r.sectionTitle)} · verse ${r.verseNum}</span>
+        </div>
+        <div class="sr-snippet">${esc(r.snippet).replace(
+          new RegExp(esc(query).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'),
+          m => `<mark>${m}</mark>`
+        )}</div>`;
+      card.addEventListener('click', async () => {
+        siteSearch.value = '';
+        siteSearchClear.classList.remove('visible');
+        await openText(r.slug);
+        // After rendering, scroll to verse
+        setTimeout(() => {
+          const el = document.getElementById(`v-${r.sectionNum}-${r.verseNum}`);
+          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); flashCard(el); }
+        }, 80);
       });
-      const span = document.createElement('span');
-      span.textContent = header || `Col ${idx + 1}`;
-      label.appendChild(cb); label.appendChild(span);
-      colPanel.appendChild(label);
+      srList.appendChild(card);
     });
-    updateColLabel();
+
+    // If more hits than shown
+    if (results.length > seen.size) {
+      srList.insertAdjacentHTML('beforeend',
+        `<div class="sr-empty" style="padding:0.75rem 0 0; font-size:0.78rem;">
+           Showing ${seen.size} verse${seen.size > 1 ? 's' : ''} (${results.length} total matches across commentary fields)
+         </div>`);
+    }
+
+    setView('search');
   }
 
-  function applyColVis(idx) {
-    rawTable.querySelectorAll(`[data-col-idx="${idx}"]`).forEach(el => {
-      el.style.display = visibleColumns[idx] ? '' : 'none';
+  /* ─── KEYBOARD SHORTCUTS ─── */
+  function wireGlobalKeys() {
+    document.addEventListener('keydown', e => {
+      const active = document.activeElement?.tagName;
+      if (e.key === '/' && !['INPUT','TEXTAREA'].includes(active)) {
+        e.preventDefault();
+        if (readerView.style.display !== 'none') {
+          fileSearch.focus();
+        } else {
+          siteSearch.focus();
+        }
+      }
     });
   }
-
-  function updateColLabel() {
-    const shown = visibleColumns.filter(Boolean).length;
-    const total = visibleColumns.length;
-    colCountLabel.textContent = shown === total ? `Columns (${total})` : `${shown} / ${total}`;
-  }
-
-  colDropdownBtn.addEventListener('click', e => { e.stopPropagation(); colPanelWrap.classList.toggle('open'); });
-  document.addEventListener('click', e => { if (!colDropdown.contains(e.target)) colPanelWrap.classList.remove('open'); });
-  colAllBtn.addEventListener('click', () => {
-    visibleColumns = visibleColumns.map(() => true);
-    colPanel.querySelectorAll('input').forEach(cb => cb.checked = true);
-    currentHeaders.forEach((_, i) => applyColVis(i));
-    updateColLabel();
-  });
-  colNoneBtn.addEventListener('click', () => {
-    visibleColumns = visibleColumns.map(() => false);
-    colPanel.querySelectorAll('input').forEach(cb => cb.checked = false);
-    currentHeaders.forEach((_, i) => applyColVis(i));
-    updateColLabel();
-  });
 
 })();
 </script>
